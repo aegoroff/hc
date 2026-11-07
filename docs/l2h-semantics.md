@@ -167,7 +167,7 @@ Any additional `from` in the body works like a **SelectMany**: for each outer ro
 When `from file f in <Dir>` walks a directory, a few rules apply:
 
 - **Flat by default.** Only the files sitting directly in that folder get visited. If you want more, pass `d.tree()` (unlimited) or `d.tree(n)` (depth-limited) instead of `d` (§4.6).
-- **Regular files only.** Symlink **entries** are always skipped, whether they point at a file or a directory — unlike a direct path in `from file` (§3.3), which may follow a symlink to a regular file. Flat mode also skips subdirectories entirely; recursive modes descend into real directories but still ignore symlink entries (they never follow them). On filesystems whose directory entries carry no type (`DT_UNKNOWN`, e.g. XFS with `ftype=0` or some FUSE mounts), the kind is resolved by a no-follow `stat` of the entry, so regular files and subdirectories are still found and symlinks are still skipped.
+- **Regular files only.** Symlink **entries** are always skipped, whether they point at a file or a directory — unlike a direct path in `from file` (§3.3), which may follow a symlink to a regular file. Flat mode also skips subdirectories entirely; recursive modes descend into real directories but still ignore symlink entries (they never follow them). On filesystems whose directory entries carry no type (`DT_UNKNOWN`, e.g. XFS with `ftype=0` or some FUSE mounts), the kind is resolved by a no-follow `stat` of the entry, so regular files and subdirectories are still found and symlinks are still skipped. An entry that disappears between the listing and that `stat` is skipped. Any other `stat` failure is a walk error (§4.6).
 - **No magic recursive `from dir`.** Recursion is a depth limit on the `Dir` value, set by the `tree` method, not a separate source form of its own.
 
 File order is whatever the directory walk returns; the language does not promise lexicographic order. Use `orderby` when you need a fixed order (for example `orderby f.path`).
@@ -328,7 +328,7 @@ select f.path;
 
 The original `d` is not mutated. You can still use `from file f in d` for a flat listing in the same query. Symlinks stay skipped even while recursing, same as flat listing, and same as `hc -r`.
 
-**Walk I/O failures.** By default, a walk/`enter` failure during `from file f in <Dir>` is an **I/O error** (the query stops; the message includes the path). That covers failing to enter a subdirectory on a recursive walk and other iterate failures the walker surfaces (including on a flat listing). `skipErrors()` returns a **new** `Dir` that soft-skips those failures and continues with whatever remains:
+**Walk I/O failures.** By default, a walk/`enter` failure during `from file f in <Dir>` is an **I/O error** (the query stops; the message includes the path). That covers failing to enter a subdirectory on a recursive walk, a failed `stat` of a `DT_UNKNOWN` entry (§3.4), and other iterate failures the walker surfaces (including on a flat listing). A `DT_UNKNOWN` entry that is gone by the time of the `stat` is skipped, and the walk continues. `skipErrors()` returns a **new** `Dir` that soft-skips those failures and continues with whatever remains:
 
 ```text
 from dir d in '/tmp'
@@ -362,8 +362,8 @@ select o.checksum();
 
 | Method | Args | Required fields | Output |
 |--------|------|-----------------|--------|
-| `sfv()` | none | exactly 2 fields including **`name`**; the other is the digest | `name    digest` (like `hc --sfv`). A newline or carriage return in either field is written as `\n` or `\r` |
-| `checksum()` | none | exactly 2 fields including **`path`**; the other is the digest | `digest path` (like `hc -c`). A newline or carriage return in either field is written as `\n` or `\r`, same as the `hc` line |
+| `sfv()` | none | exactly 2 fields including **`name`**; the other is the digest | `name    digest` (like `hc --sfv`). On POSIX, a backslash is written as `\\`; Windows path separators stay single. A newline is written as `\n`, and a carriage return as `\r` |
+| `checksum()` | none | exactly 2 fields including **`path`**; the other is the digest | `digest path` (like `hc -c`). On POSIX, a backslash is written as `\\`; Windows path separators stay single. A newline is written as `\n`, and a carriage return as `\r`, same as the `hc` line |
 | `json()` | none | scalars, nested `Record`, `Seq` (any depth) | Compact JSON object (`std.json` minified). Nested records → objects; sequences → arrays. A `String` is always a JSON string; bytes that are not valid UTF-8 (file names, `b'…'`) become U+FFFD. Terminal sink → one object per element (NDJSON) |
 | `jsonPretty()` | none | same as `json()` | Same as `json()`, with 2-space indentation |
 | `csv()` | none | scalar fields only | Joins all fields **in record field order** with `,` (no CSV escaping) |
@@ -603,7 +603,7 @@ When a projection acts as a **sink** (the last operation, with no `into`), the r
 
 - Each projected element produces output.
 - For a **single** property / scalar projection (`String` / `Int` / `Bool`): one line per element (e.g. a hex digest).
-- For a projected `File` / `Dir`: one line with the bound path. For a projected `Hash`: one line with the bound digest string. A newline in that path is written as `\n`, and a carriage return as `\r`. The same spelling is used for `f.path` and `f.name`. A `|` in the path stays a `|`. `hc` listing, search, and failure lines also write `|` as `\|`, because those lines separate columns with ` | `. A backslash that is already in the name stays a backslash.
+- For a projected `File` / `Dir`: one line with the bound path. For a projected `Hash`: one line with the bound digest string. On POSIX, a backslash in that path is written as `\\`, which keeps a real newline distinct from the characters `\` and `n`. Windows path separators stay single. A newline is written as `\n`, and a carriage return as `\r`. The same spelling is used for `f.path` and `f.name`. A `|` in the path stays a `|`. `hc` listing, search, and failure lines also write `|` as `\|`, because those lines separate columns with ` | `. This keeps `a|b` distinct from a name that already contains `\|`.
 - For a projected `Seq`: expand recursively, one sink pass per item (so N items can produce more than N lines if items are themselves records).
 - For an **anonymous object** with multiple fields, like `{ f.md5, f.sha1 }`: **one line per field**, in field order. So two fields means **two lines** per input element, not one. Each field value must be a scalar or path-like (`String` / `Int` / `Bool` / `File` / `Dir` / `Hash`); a `Seq`- or nested-`Record`-valued field is a runtime `TypeMismatch` (use `into` + `from` to flatten group `items`).
 

@@ -3,6 +3,9 @@ from __future__ import annotations
 
 import os
 import shutil
+import tempfile
+from collections.abc import Generator
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -48,26 +51,28 @@ def _default_test_dir() -> Path:
     return Path.home() / ".local" / "share" / "_tst.py"
 
 
+@contextmanager
+def _file_workspace(parent: Path) -> Generator[tuple[Path, Path], None, None]:
+    """Unique directory under ``parent``. Cleanup deletes only that directory."""
+    parent.mkdir(parents=True, exist_ok=True)
+    base = Path(tempfile.mkdtemp(prefix="hc-", dir=parent))
+    try:
+        sub = base / "sub"
+        sub.mkdir()
+        yield base, sub
+    finally:
+        shutil.rmtree(base, ignore_errors=True)
+
+
 @pytest.fixture(scope="module")
 def file_fixture():
-    """Create/clean the file-test workspace (FileFixture parity)."""
+    """Unique workspace under HC_TEST_DIR. Teardown removes only that directory."""
     env = os.environ.get("HC_TEST_DIR")
-    if env:
-        base = Path(env.strip())
-    else:
-        base = _default_test_dir()
+    parent = Path(env.strip()) if env else _default_test_dir()
+    with _file_workspace(parent) as (base, sub):
 
-    if base.exists():
-        shutil.rmtree(base)
-    sub = base / "sub"
-    base.mkdir(parents=True, exist_ok=True)
-    sub.mkdir(parents=True, exist_ok=True)
+        class Fixture:
+            base_test_dir = base
+            sub_dir = sub
 
-    class Fixture:
-        base_test_dir = base
-        sub_dir = sub
-
-    yield Fixture()
-
-    if base.exists():
-        shutil.rmtree(base, ignore_errors=True)
+        yield Fixture()

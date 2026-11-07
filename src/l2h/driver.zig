@@ -13,13 +13,16 @@ const diag = @import("diag.zig");
 
 /// Parse CLI (`argv` without program name), then parse/compile (and interpret
 /// unless `-n` / `--syntax-check`).
+/// `script_alloc` owns multi-statement `into` bindings and must reclaim frees.
 pub fn run(
     gpa: std.mem.Allocator,
+    script_alloc: std.mem.Allocator,
     out: *std.Io.Writer,
     io: std.Io,
     argv: []const [:0]const u8,
 ) !void {
     state.gpa = gpa;
+    state.script_alloc = script_alloc;
     state.io = io;
     state.out = out;
     state.had_error = false;

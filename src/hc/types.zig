@@ -58,7 +58,8 @@ pub const PathError = error{
 };
 
 /// One step of a regular-file walk. `failed.path` is a hint (root on iterate
-/// errors, subdirectory path on `enter` errors); `failed.err` is the I/O error.
+/// errors, the entry path on `stat` errors, subdirectory path on `enter`
+/// errors); `failed.err` is the I/O error.
 pub const WalkStep = union(enum) {
     file: []u8,
     failed: struct { path: []u8, err: anyerror },

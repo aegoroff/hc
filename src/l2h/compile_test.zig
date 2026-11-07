@@ -29,6 +29,7 @@ fn resultAlloc() std.mem.Allocator {
 
 fn setup() void {
     state.gpa = std.testing.allocator;
+    state.script_alloc = std.testing.allocator;
     state.io = std.testing.io;
     out_writer = .fixed(&out_buf);
     state.out = &out_writer;
@@ -148,6 +149,22 @@ test "compile+run script into shared across statements" {
     try std.testing.expectEqualStrings("xyz\n", got.out);
 }
 
+test "compile+run rebind into the same name keeps the latest value" {
+    // Arrange
+    const query =
+        \\from string s in 'one' select s into x;
+        \\from string s in 'two' select s into x;
+        \\from string t in 'q' select x;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("two\n", got.out);
+}
+
 test "compile+run script into does not print" {
     // Arrange
     const query = "from string s in 'abc' select s.md5 into h;";
@@ -173,6 +190,36 @@ test "compile+run script group into shared across statements" {
     // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("3\n", got.out);
+}
+
+test "compile+run select continuation reads script binding" {
+    // Arrange
+    const query =
+        \\from string s in 'abc' select s into saved;
+        \\from string s in 'x' select s into x select saved;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("abc\n", got.out);
+}
+
+test "compile+run group continuation reads script binding" {
+    // Arrange
+    const query =
+        \\from string s in 'abc' select s into saved;
+        \\from string s in 'x' group s by s.size into g select saved;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("abc\n", got.out);
 }
 
 test "compile+run multiple queries reuse range id" {
@@ -1259,6 +1306,7 @@ test "compile+run file.name projects basename only" {
 
 test "compile+run file.name keeps backslash in POSIX file name" {
     // A backslash is an ordinary file name byte on POSIX, not a separator.
+    // The sink writes that byte as `\\`.
     if (comptime builtin.target.os.tag == .windows) return error.SkipZigTest;
 
     // Arrange
@@ -1281,7 +1329,7 @@ test "compile+run file.name keeps backslash in POSIX file name" {
 
     // Assert
     try std.testing.expectEqualStrings("", got.err);
-    try std.testing.expectEqualStrings("a\\b.txt\n", got.out);
+    try std.testing.expectEqualStrings("a\\\\b.txt\n", got.out);
 }
 
 test "compile+run file sfv and checksum ignore declaration order" {

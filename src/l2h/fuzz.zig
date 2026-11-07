@@ -205,7 +205,7 @@ fn fuzzOne(_: void, smith: *std.testing.Smith) anyerror!void {
     defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
 
     const argv = [_][:0]const u8{ "-q", query_z };
-    driver.run(gpa, &out, std.testing.io, &argv) catch {};
+    driver.run(gpa, std.testing.allocator, &out, std.testing.io, &argv) catch {};
 }
 
 test "fuzz query via -q" {

@@ -24,7 +24,9 @@ pub fn main(init: std.process.Init) !void {
     const gpa = init.arena.allocator();
     const argv = try init.minimal.args.toSlice(gpa);
 
-    try driver.run(gpa, &stdout_writer.interface, init.io, argv[1..]);
+    // Replaced `into` values are freed. libc malloc reclaims those frees in
+    // every optimize mode, including Debug where `init.gpa` is SafeAllocator.
+    try driver.run(gpa, std.heap.c_allocator, &stdout_writer.interface, init.io, argv[1..]);
 
     try stdout_writer.interface.flush();
     if (state.had_error) std.process.exit(1);
@@ -75,7 +77,7 @@ test "syntax-check skips interpret for missing file" {
     // Act
     const saved_stderr = test_stderr.mute();
     defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
-    try driver.run(arena.allocator(), &syntax_out_writer, std.testing.io, &argv);
+    try driver.run(arena.allocator(), std.testing.allocator, &syntax_out_writer, std.testing.io, &argv);
 
     // Assert
     try std.testing.expect(!state.had_error);
@@ -95,7 +97,7 @@ test "without syntax-check missing file fails at runtime" {
     // Act
     const saved_stderr = test_stderr.mute();
     defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
-    try driver.run(arena.allocator(), &syntax_out_writer, std.testing.io, &argv);
+    try driver.run(arena.allocator(), std.testing.allocator, &syntax_out_writer, std.testing.io, &argv);
 
     // Assert
     try std.testing.expect(state.had_error);
@@ -115,7 +117,7 @@ test "syntax-check still reports compile errors" {
     // Act
     const saved_stderr = test_stderr.mute();
     defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
-    try driver.run(arena.allocator(), &syntax_out_writer, std.testing.io, &argv);
+    try driver.run(arena.allocator(), std.testing.allocator, &syntax_out_writer, std.testing.io, &argv);
 
     // Assert
     try std.testing.expect(state.had_error);
