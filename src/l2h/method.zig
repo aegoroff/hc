@@ -51,6 +51,8 @@ pub const Kind = union(enum) {
     hash_max,
     /// `Hash.noProbe()` — same digest, skip restore timing probe (§4.4).
     hash_noprobe,
+    /// Interpret the Hash digest as Base64 (§4.4).
+    hash_from_base64,
     /// `Seq.count()` — number of elements in a materialized sequence (§4.9).
     seq_count,
 };
@@ -74,6 +76,7 @@ const BUILTIN_METHODS = std.StaticStringMap(Kind).initComptime(.{
     .{ "min", .hash_min },
     .{ "max", .hash_max },
     .{ "noProbe", .hash_noprobe },
+    .{ "fromBase64", .hash_from_base64 },
     .{ "count", .seq_count },
 });
 

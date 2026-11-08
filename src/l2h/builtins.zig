@@ -86,7 +86,7 @@ pub fn spec(kind: Kind) MethodSpec {
         .file_offset, .file_limit => .{ .result = .file, .recv = .file, .args = .int },
         .hash_dict => .{ .result = .hash, .recv = .hash, .args = .string },
         .hash_min, .hash_max => .{ .result = .hash, .recv = .hash, .args = .int },
-        .hash_noprobe => .{ .result = .hash, .recv = .hash, .args = .none },
+        .hash_noprobe, .hash_from_base64 => .{ .result = .hash, .recv = .hash, .args = .none },
         .seq_count => .{ .result = .int, .recv = .seq, .args = .none },
     };
 }
@@ -133,10 +133,10 @@ fn fileIsReadable(ctx: Ctx, path: []const u8) bool {
     return kind == .file;
 }
 
-fn restoreHash(ctx: Ctx, algo: []const u8, h: value.HashVal) Error!void {
+fn restoreHash(ctx: Ctx, algo: []const u8, h: value.HashVal) Error![]const u8 {
     const def = hashes.getHash(algo) orelse return error.UnknownHash;
     var target: [modes.types.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([modes.types.MAX_DIGEST_SIZE]u8);
-    modes.types.parseSearchHash(h.digest, false, def, &target) catch return error.InvalidHashDigest;
+    modes.types.parseSearchHash(h.digest, h.is_base64, def, &target) catch return error.InvalidHashDigest;
     const password = modes.hash.restore(def, target[0..def.hash_length], .{
         .dictionary = h.dictionary,
         .min = h.min,
@@ -150,6 +150,9 @@ fn restoreHash(ctx: Ctx, algo: []const u8, h: value.HashVal) Error!void {
         else => error.IoFailure,
     };
     if (password) |p| ctx.allocator.free(p);
+    if (!h.is_base64) return h.digest;
+    var hex_buf: [modes.types.MAX_DIGEST_SIZE * 2]u8 = undefined;
+    return try ctx.allocator.dupe(u8, modes.types.hashToHex(target[0..def.hash_length], true, &hex_buf));
 }
 
 /// Stores one bound. `min > max` is checked when a restore runs, not here, so
@@ -219,8 +222,8 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?Access, sp: exp
             .file => |f| Value.digestStr(hashHexOfFile(ctx, prop, f) catch |err| return failSpan(sp, err)),
             .string => |s| Value.digestStr(hashHexOfBytes(ctx, prop, s.bytes) catch |err| return failSpan(sp, err)),
             .hash => |h| blk: {
-                restoreHash(ctx, prop, h) catch |err| return failSpan(sp, err);
-                break :blk Value.digestStr(h.digest);
+                const digest = restoreHash(ctx, prop, h) catch |err| return failSpan(sp, err);
+                break :blk Value.digestStr(digest);
             },
             else => unreachable,
         },
@@ -298,6 +301,10 @@ pub fn evalMethod(
         .hash_noprobe => {
             if (recv != .hash) return failSpan(sp, error.InvalidMethodReceiver);
             return .{ .hash = recv.hash.withNoProbe() };
+        },
+        .hash_from_base64 => {
+            if (recv != .hash) return failSpan(sp, error.InvalidMethodReceiver);
+            return .{ .hash = recv.hash.fromBase64() };
         },
         .seq_count => {
             if (recv != .seq) return failSpan(sp, error.InvalidMethodReceiver);

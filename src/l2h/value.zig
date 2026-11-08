@@ -46,6 +46,7 @@ pub const HashVal = struct {
     min: i32 = 1,
     max: i32 = 10,
     no_probe: bool = false,
+    is_base64: bool = false,
 
     pub fn withDict(self: HashVal, dictionary: []const u8) HashVal {
         var copy = self;
@@ -62,6 +63,13 @@ pub const HashVal = struct {
     pub fn withMax(self: HashVal, max: i32) HashVal {
         var copy = self;
         copy.max = max;
+        return copy;
+    }
+
+    /// Interpret the stored digest as Base64 when restoring.
+    pub fn fromBase64(self: HashVal) HashVal {
+        var copy = self;
+        copy.is_base64 = true;
         return copy;
     }
 
