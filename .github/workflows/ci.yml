@@ -74,23 +74,21 @@ jobs:
       # mise is installed here rather than with jdx/mise-action: the action
       # downloads via the system curl.exe (schannel fails with
       # CRYPT_E_REVOCATION_OFFLINE, the runner cannot reach CRL/OCSP servers)
-      # and needs unzip, which the runner lacks. The standalone .exe from the
-      # GitHub release is checked against the release's SHASUMS256.txt and kept
-      # in LOCALAPPDATA, so later jobs skip the download.
+      # and needs unzip, which the runner lacks. The standalone .exe is checked
+      # against a pinned SHA-256 and kept in LOCALAPPDATA, so later jobs verify
+      # the cache without network access. Cold downloads use the GitHub API
+      # because direct release URLs can return 504 on the runners.
       - name: Install mise
         env:
           MISE_VERSION: 2026.10.0
+          MISE_SHA256: d09c099e6d5fb580fb42590a995a9432d448d63d66dc7521e90f28785bf86ad2
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
           $asset = "mise-v$env:MISE_VERSION-windows-x64.exe"
-          $base = "https://github.com/jdx/mise/releases/download/v$env:MISE_VERSION"
           $miseDir = Join-Path $env:LOCALAPPDATA "hc-cache\mise-$env:MISE_VERSION"
           $miseExe = Join-Path $miseDir "mise.exe"
-          $sumsFile = Join-Path $env:RUNNER_TEMP "mise-SHASUMS256.txt"
-          Invoke-WebRequest -UseBasicParsing -Uri "$base/SHASUMS256.txt" -OutFile $sumsFile
-          $line = Get-Content -LiteralPath $sumsFile | Where-Object { $_ -match "\s\./$([regex]::Escape($asset))$" }
-          if (-not $line) { throw "$asset not listed in SHASUMS256.txt" }
-          $expected = ($line -split '\s+')[0].ToLowerInvariant()
+          $expected = $env:MISE_SHA256.ToLowerInvariant()
           $actual = if (Test-Path -LiteralPath $miseExe) {
             (Get-FileHash -Algorithm SHA256 -LiteralPath $miseExe).Hash.ToLowerInvariant()
           } else {
@@ -98,8 +96,23 @@ jobs:
           }
           if ($actual -ne $expected) {
             New-Item -ItemType Directory -Force -Path $miseDir | Out-Null
+            $release = Invoke-RestMethod -UseBasicParsing `
+              -Uri "https://api.github.com/repos/jdx/mise/releases/tags/v$env:MISE_VERSION" `
+              -Headers @{
+                Accept = "application/vnd.github+json"
+                Authorization = "Bearer $env:GITHUB_TOKEN"
+                "User-Agent" = "hc-ci"
+              }
+            $assetInfo = $release.assets | Where-Object { $_.name -eq $asset } | Select-Object -First 1
+            if (-not $assetInfo) { throw "$asset not listed in the mise release" }
             $tmp = "$miseExe.download"
-            Invoke-WebRequest -UseBasicParsing -Uri "$base/$asset" -OutFile $tmp
+            Invoke-WebRequest -UseBasicParsing -Uri $assetInfo.url `
+              -Headers @{
+                Accept = "application/octet-stream"
+                Authorization = "Bearer $env:GITHUB_TOKEN"
+                "User-Agent" = "hc-ci"
+              } `
+              -OutFile $tmp
             $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $tmp).Hash.ToLowerInvariant()
             if ($actual -ne $expected) {
               Remove-Item -LiteralPath $tmp -Force
@@ -266,14 +279,64 @@ jobs:
       - uses: actions/checkout@v7
       # Zig comes from mise.toml; linux_build.sh runs `mise install` itself.
       # Explicit version: without it the action resolves the latest one via
-      # mise.jdx.dev, which the runners cannot reach (TLS EOF); with it both the
-      # binary and checksums come from GitHub releases.
+      # mise.jdx.dev, which the runners cannot reach (TLS EOF).
       # cache=false: self-hosted runners keep ~/.local/share/mise between jobs,
-      # a GitHub Cache round-trip is slower than that.
+      # a GitHub Cache round-trip is slower than that. The pinned SHA-256 lets
+      # the action verify a cached binary without downloading signed checksums.
+      - name: Bootstrap mise from GitHub API
+        id: mise_bootstrap
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          MISE_VERSION: 2026.10.0
+        run: |
+          set -euo pipefail
+          case "$(uname -m)" in
+            x86_64)
+              arch=x64
+              expected_sha=57ced973f968b8fbab07aa8e32bd7077d4a357e200a22356d98963c723c6de0a
+              ;;
+            aarch64|arm64)
+              arch=arm64
+              expected_sha=4b8cacffac83e8493fc5d1eef25f6365edba73ccbed5a1f3987b7cb3f5079656
+              ;;
+            *)
+              echo "Unsupported mise host architecture: $(uname -m)" >&2
+              exit 1
+              ;;
+          esac
+          asset="mise-v${MISE_VERSION}-linux-${arch}"
+          echo "sha256=${expected_sha}" >> "$GITHUB_OUTPUT"
+          mise_root="${MISE_DATA_DIR:-${XDG_DATA_HOME:-${HOME}/.local/share}/mise}"
+          mise_bin="${mise_root}/bin/mise"
+          if [[ -x "$mise_bin" ]] && [[ "$(sha256sum "$mise_bin" | cut -d ' ' -f1)" == "$expected_sha" ]]; then
+            echo "Using cached ${asset}"
+            exit 0
+          fi
+          mkdir -p "$mise_root/bin"
+          tmp="$(mktemp "${mise_bin}.download.XXXXXX")"
+          trap 'rm -f "$tmp"' EXIT
+          release_url="https://api.github.com/repos/jdx/mise/releases/tags/v${MISE_VERSION}"
+          asset_url="$(
+            curl -fsSL \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              "$release_url" |
+              python3 -c 'import json, sys; release = json.load(sys.stdin); print(next(asset["url"] for asset in release["assets"] if asset["name"] == sys.argv[1]))' "$asset"
+          )"
+          curl -fsSL \
+            -H "Accept: application/octet-stream" \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            "$asset_url" --output "$tmp"
+          echo "${expected_sha}  ${tmp}" | sha256sum --check -
+          chmod +x "$tmp"
+          mv -f "$tmp" "$mise_bin"
+          trap - EXIT
       - name: Install mise
         uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
         with:
           version: 2026.10.0
+          sha256: ${{ steps.mise_bootstrap.outputs.sha256 }}
           install: false
           cache: false
       # Self-hosted Linux runner: pytest (+ xdist) on PATH via agent toolchain
@@ -314,6 +377,7 @@ jobs:
           HC_VERSION: ${{ needs.prepare.outputs.version }}
           PROJECT_BASE_PATH: "${{runner.workspace}}/${{ env.PROJECT_NAME }}"
           HC_EXTERNAL_LIB_CACHE: /opt/actions-runner/hc-external-lib
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Upload test results
         if: ${{ !cancelled() && matrix.os == 'linux' }}

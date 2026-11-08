@@ -3848,3 +3848,47 @@ test "compile+run File.size counts procfs bytes that stat reports as 0" {
     // Assert
     try std.testing.expectEqualStrings("status\n", got.out);
 }
+
+test "compile+run Base64 SHA1 restore preserves knobs and suppresses duplicate digest" {
+    // Arrange
+    const query = "from hash x in 'QL0AFWMIX8NRZTKeof9cXsvbvu8=' select x.dict('0123456789').min(3).fromBase64().fromBase64().max(3).noProbe().sha1;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expect(std.mem.find(u8, got.out, "Initial string is: 123") != null);
+    try std.testing.expect(std.mem.find(u8, got.out, "QL0AFWMIX8NRZTKeof9cXsvbvu8=") == null);
+}
+
+test "compile+run Base64 restore returns hex without mutating original binding" {
+    // Arrange
+    const query = "from hash x in '1B2M2Y8AsgTpgAmY7PhCfg==' let h = x.fromBase64() select { decoded = h.md5 };";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expect(std.mem.find(u8, got.out, "d41d8cd98f00b204e9800998ecf8427e") != null);
+}
+
+test "compile+run fromBase64 rejects invalid receiver arity and digest" {
+    // Arrange
+    const cases = .{
+        .{ "from string x in 'a' select x.fromBase64();", "invalid method receiver" },
+        .{ "from hash x in 'a' select x.fromBase64(1);", "wrong number of method arguments" },
+        .{ "from hash x in '!!!!!!!!!!!!!!!!!!!!!!!!' select x.fromBase64().md5;", "invalid hash digest for the selected algorithm" },
+        .{ "from hash x in 'YQ==' select x.fromBase64().sha1;", "invalid hash digest for the selected algorithm" },
+        .{ "from hash x in '1B2M2Y8AsgTpgAmY7PhCfg==' let h = x.fromBase64() select x.md5;", "invalid hash digest for the selected algorithm" },
+    };
+
+    inline for (cases) |case| {
+        // Act
+        const got = try runQuery(case[0]);
+
+        // Assert
+        try std.testing.expectEqualStrings(case[1], got.err);
+    }
+}

@@ -33,7 +33,7 @@ Read it left to right: open one file, keep it only if it's non-empty, then print
 
 A few things are deliberately **not** part of l2h:
 
-- **Method calls outside the catalogs.** Record formatters (§4.7), hash-check methods on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), `File.offset(n)` / `File.limit(n)` (§4.5), `Hash.dict(s)` / `Hash.min(n)` / `Hash.max(n)` / `Hash.noProbe()` (§4.4), and `Seq.count()` (§4.9) are the only method calls that exist. Property access (`x.prop`) covers digests and metadata; anything else (other receivers, other method names) is an error.
+- **Method calls outside the catalogs.** Record formatters (§4.7), hash-check methods on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), `File.offset(n)` / `File.limit(n)` (§4.5), `Hash.dict(s)` / `Hash.min(n)` / `Hash.max(n)` / `Hash.noProbe()` / `Hash.fromBase64()` (§4.4), and `Seq.count()` (§4.9) are the only method calls that exist. Property access (`x.prop`) covers digests and metadata; anything else (other receivers, other method names) is an error.
 - **A bytecode / register VM.** The runtime uses Volcano-lite pull operators over the compiled plan tree. There's no global instruction tape and nothing coupled to an instruction index.
 - **Interpreter performance tuning beyond correctness.** Not a goal here, by design.
 
@@ -204,7 +204,7 @@ In practice: put cheap predicates (`size`, `path`) before expensive ones (`<hash
 
 Property access is `recv.prop`. The left-hand side is any expression whose type has that property (§4.3) — usually a range identifier (`f.md5`, `s.size`), but also a string literal (`'abc'.md5`, `'abc'.size`) or another expression that already typed as `String` / `File` / `Hash` / `Dir` / `Record` (for example `s.md5.size`). Asking for a property the receiver kind doesn't have is still an error.
 
-**Method calls** use `receiver.method(args…)`, where the receiver can be either a range identifier or a record literal `{…}` (record literals only work for formatters; see §4.7). That covers Record formatters (§4.7), hash-check on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), `File.offset(n)` / `File.limit(n)` (§4.5), `Hash.dict(s)` / `Hash.min(n)` / `Hash.max(n)` / `Hash.noProbe()` (§4.4), and `Seq.count()` (§4.9). Unknown methods, wrong arity, or an invalid receiver are all errors.
+**Method calls** use `receiver.method(args…)`, where the receiver can be either a range identifier or a record literal `{…}` (record literals only work for formatters; see §4.7). That covers Record formatters (§4.7), hash-check on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), `File.offset(n)` / `File.limit(n)` (§4.5), `Hash.dict(s)` / `Hash.min(n)` / `Hash.max(n)` / `Hash.noProbe()` / `Hash.fromBase64()` (§4.4), and `Seq.count()` (§4.9). Unknown methods, wrong arity, or an invalid receiver are all errors.
 
 Property and method names can include hyphens, so hash algorithms use the same spellings as `hc`: `s.sha-3-224`, `s.crc64-xz`, `s.haval-256-3`, and so on. Range names and record field names follow the same rule. A name can't end with `-`, and `--` isn't allowed. Negative integers like `-1` or `tree(-1)` are still ordinary number literals; there is no binary minus.
 
@@ -233,7 +233,7 @@ Which properties are available depends entirely on the **runtime kind** of the r
 | `Int` / `Bool` | - | - | No properties in v1.0 |
 | `Seq` | - | - | No properties; use `count()` (§4.9) |
 
-Hex digests from **computed** hash properties (`File` / `String`) are always **lowercase** when printed or produced as a `String` value. A `Hash` restore property returns the **bound digest as stored** (input casing preserved) and still tags it as a **digest value**, so equality / join / `group by` / `orderby` stay **case-insensitive** under §5.3 — the same as computed digests. The restore runner's own stdout output is separate (§4.4).
+Hex digests from **computed** hash properties (`File` / `String`) are always **lowercase** when printed or produced as a `String` value. A `Hash` restore property returns the **bound digest as stored** (input casing preserved for hex; Base64 input returns lowercase hex) and still tags it as a **digest value**, so equality / join / `group by` / `orderby` stay **case-insensitive** under §5.3 — the same as computed digests. The restore runner's own stdout output is separate (§4.4).
 
 ### 4.4 `from hash` + select (restore)
 
@@ -244,7 +244,7 @@ select x.md5;
 
 This restores / reverses using algorithm `md5` against the given digest literal. The actual work gets delegated to the existing hash-restore runners in `modes`. Again, it does **not** mean "compute md5 of the hex string"; that would be a completely different (and much less useful) operation.
 
-**Stdout contract.** Evaluating a Hash `<hash>` property may write restore runner output to stdout as a side effect. The property still returns the bound digest as a digest-typed `String` (input casing preserved). When that property is the **terminal** `select` projection (e.g. `select x.md5` or `select x.noProbe().md5`), the sink **does not** print the returned string again; otherwise you'd get the restore output plus a duplicate digest line. Terminal projections of non-algo Hash properties (`min` / `max` / `dict` / `noProbe`) still print their values.
+**Stdout contract.** Evaluating a Hash `<hash>` property may write restore runner output to stdout as a side effect. The property still returns the bound digest as a digest-typed `String` (input casing preserved for hex; Base64 input returns lowercase hex). When that property is the **terminal** `select` projection (e.g. `select x.md5` or `select x.noProbe().md5`), the sink **does not** print the returned string again; otherwise you'd get the restore output plus a duplicate digest line. Terminal projections of non-algo Hash properties (`min` / `max` / `dict` / `noProbe`) still print their values.
 
 A `Hash` from `from hash` starts with the same restore settings as plain `hc hash`: default alphabet, lengths 1 through 10, and the `"123"` timing probe. Empty MD5 skips the probe on the fast path.
 
@@ -255,6 +255,7 @@ You set those with methods that return a **new** `Hash` (same digest, one field 
 | `h.dict(s)` | New `Hash` with restore alphabet `s` (NUL bytes are dropped; the restore engine uses NUL to mark an empty position) |
 | `h.min(n)` | New `Hash` with min length `n` (`n ≥ 1`; 32-bit, same as `hc hash -n`) |
 | `h.max(n)` | New `Hash` with max length `n` (`n ≥ 1`; 32-bit, same as `hc hash -x`) |
+| `h.fromBase64()` | New `Hash` interpreting the input digest as standard Base64 |
 | `h.noProbe()` | New `Hash` with timing probe disabled |
 
 ```text
@@ -265,6 +266,13 @@ select x.dict('0123456789').min(1).max(3).noProbe().md5;
 The methods only store a bound, so their order does not matter: `h.min(12).max(15)` and `h.max(15).min(12)` are the same `Hash`, even though `min(12)` alone is above the default max of 10. Min larger than max is checked when a restore property runs: `h.min(5).max(2).md5` is an error, while reading `h.min(5).max(2).max` just yields `2`. `n = 0` is an error right at the call. `hc hash` uses 0 to mean the option was omitted, not a length, so l2h will not store it.
 
 A max that fits `i32` can still be too large for restore (same cap as `hc hash -x`). That is a length error, not an invalid digest. The restore runner still prints `Max string length is too big: …`.
+
+`fromBase64()` takes no arguments, preserves restore settings, and returns a new `Hash`. Repeated calls have the same effect as one call. Invalid Base64 or a decoded length that does not match the algorithm fails when a restore property runs. For Base64 input, the restore property returns lowercase hex, keeping digest comparisons case-insensitive.
+
+```text
+from hash x in 'MGV6VMjk4LQgyTk9tUix4z42X2o='
+select x.fromBase64().sha1;
+```
 
 The original binding is not mutated. Any restore property on that value (`x.md5`, `x.sha1`, …) uses its `dict`, `min`, `max`, and `noProbe` fields.
 
