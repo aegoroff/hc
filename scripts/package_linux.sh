@@ -6,6 +6,7 @@
 #   packagers: comma-separated list — deb,rpm (gnu) or apk (musl)
 #
 # Requires network on first run unless `nfpm` is already on PATH.
+# Cold downloads use the GitHub API; GITHUB_TOKEN raises its rate limit when set.
 # Override NFPM_VER to pin the nfpm release (default 2.47.0).
 set -euo pipefail
 
@@ -65,10 +66,33 @@ resolve_nfpm() {
   local bin="${cache_dir}/nfpm"
   if [[ ! -x "${bin}" ]]; then
     mkdir -p "${cache_dir}"
-    local url="https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VER}/nfpm_${NFPM_VER}_Linux_${host_arch}.tar.gz"
+    local asset="nfpm_${NFPM_VER}_Linux_${host_arch}.tar.gz"
+    local release_url="https://api.github.com/repos/goreleaser/nfpm/releases/tags/v${NFPM_VER}"
+    local auth=()
+    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+      auth=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+    fi
     echo "==> downloading nfpm ${NFPM_VER} (${host_arch})" >&2
-    curl -fsSL "${url}" | tar --no-same-owner -xz -C "${cache_dir}" nfpm
-    chmod +x "${bin}"
+    local asset_url
+    if ! asset_url="$(
+      curl -fsSL -H "Accept: application/vnd.github+json" "${auth[@]}" "${release_url}" |
+        python3 -c 'import json, sys; release = json.load(sys.stdin); print(next(asset["url"] for asset in release["assets"] if asset["name"] == sys.argv[1]))' "${asset}"
+    )"; then
+      echo "failed to resolve nfpm release asset: ${asset}" >&2
+      return 1
+    fi
+    local archive
+    archive="$(mktemp "${cache_dir}/nfpm.tar.gz.XXXXXX")"
+    if ! curl -fsSL -H "Accept: application/octet-stream" "${auth[@]}" "${asset_url}" --output "${archive}"; then
+      rm -f "${archive}"
+      return 1
+    fi
+    if ! tar --no-same-owner -xzf "${archive}" -C "${cache_dir}" nfpm; then
+      rm -f "${archive}"
+      return 1
+    fi
+    rm -f "${archive}"
+    chmod +x "${bin}" || return 1
   fi
   printf '%s\n' "${bin}"
 }

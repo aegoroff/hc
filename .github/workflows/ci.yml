@@ -377,6 +377,7 @@ jobs:
           HC_VERSION: ${{ needs.prepare.outputs.version }}
           PROJECT_BASE_PATH: "${{runner.workspace}}/${{ env.PROJECT_NAME }}"
           HC_EXTERNAL_LIB_CACHE: /opt/actions-runner/hc-external-lib
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Upload test results
         if: ${{ !cancelled() && matrix.os == 'linux' }}
