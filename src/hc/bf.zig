@@ -461,7 +461,7 @@ fn runBruteForce(
         const ctx = &slot.ctx;
         ctx.* = std.mem.zeroes(c.bf_cpu_ctx_t);
         ctx.passmin_ = passmin;
-        ctx.passmax_ = passmax;
+        ctx.passmax_ = if (has_gpu and passmax <= gpu_max_len) @min(passmax, 3) else passmax;
         ctx.work_thread_ = 1;
         ctx.thread_num_ = i + 1;
         ctx.pass_ = (try arena.alloc(u8, passmax + 1)).ptr;
@@ -534,10 +534,9 @@ fn runBruteForce(
                     }
                 }
             }
-            // Classic always set found after GPU join (even on a miss), which
-            // can abort CPU before it finishes shorter lengths. Only stop CPU
-            // when GPU actually found a password; on a miss CPU keeps going
-            // (also covers passmax beyond the GPU slot size — see #10).
+            // Only stop CPU when GPU actually found a password. On a miss the
+            // short CPU workers finish before the full CPU fallback below.
+            // Beyond the GPU slot size their range was never capped (see #10).
             if (gpu_found) {
                 c.bf_core_set_found(true);
             }
@@ -564,6 +563,12 @@ fn runBruteForce(
         }
     }
 
+    if (found_pass == null and has_gpu and passmax <= gpu_max_len and !g_stop_requested.load(.acquire)) {
+        const attempts_before_fallback = c.bf_core_get_attempts();
+        const fallback_pass = try runBruteForce(arena, writer, dict, digest, passmin, passmax, num_threads_in, use_wide, false, null);
+        c.bf_core_add_attempts(attempts_before_fallback);
+        return fallback_pass;
+    }
     return found_pass;
 }
 
@@ -684,6 +689,25 @@ test "runBruteForce honors a stop requested before its reset" {
 
     // Assert
     try std.testing.expect(got == null);
+}
+
+test "crackHash GPU miss preserves attempts across the CPU fallback" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const md5 = hashes.getHash("md5").?;
+    var digest: [16]u8 align(8) = undefined;
+    hashes.compute(md5, "a", &digest);
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const expected_attempts: u64 = if (c.gpu_can_use_gpu()) 213220 else 111110;
+
+    // Act
+    const got = try crackHash(std.testing.allocator, io, &writer, "0-9", &digest, 5, 5, md5, true, 1, false);
+    defer if (got) |password| std.testing.allocator.free(password);
+
+    // Assert
+    try std.testing.expect(got == null);
+    try std.testing.expectEqual(expected_attempts, c.bf_core_get_attempts());
 }
 
 fn stopWhenCrackActive() void {
