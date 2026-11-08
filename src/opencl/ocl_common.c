@@ -127,7 +127,9 @@ int hc_ocl_algo_prepare(hc_ocl_algo_t* algo, const char* src, const char* kernel
         return -1;
     }
 
-    algo->result_buf = api->clCreateBuffer(octx, CL_MEM_READ_WRITE, GPU_ATTEMPT_SIZE, NULL, &err);
+    unsigned char zeros[GPU_ATTEMPT_SIZE] = { 0 };
+    algo->result_buf =
+        api->clCreateBuffer(octx, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, GPU_ATTEMPT_SIZE, zeros, &err);
     if (err != CL_SUCCESS) {
         hc_ocl_algo_release_bufs(algo);
         return -1;
@@ -157,9 +159,6 @@ void hc_ocl_algo_run(hc_ocl_algo_t* algo, gpu_tread_ctx_t* ctx, size_t dict_len)
     const uint32_t count = ctx->batch_count_;
     if (threads == 0 || count == 0) return;
 
-    unsigned char zeros[GPU_ATTEMPT_SIZE];
-    memset(zeros, 0, sizeof(zeros));
-    api->clEnqueueWriteBuffer(queue, algo->result_buf, CL_TRUE, 0, GPU_ATTEMPT_SIZE, zeros, 0, NULL, NULL);
     int zero = 0;
     api->clEnqueueWriteBuffer(queue, algo->found_buf, CL_TRUE, 0, sizeof(int), &zero, 0, NULL, NULL);
 
