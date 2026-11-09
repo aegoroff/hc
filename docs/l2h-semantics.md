@@ -258,6 +258,8 @@ You set those with methods that return a **new** `Hash` (same digest, one field 
 | `h.fromBase64()` | New `Hash` interpreting the input digest as standard Base64 |
 | `h.noProbe()` | New `Hash` with timing probe disabled |
 
+Restore dictionaries are byte alphabets. For UTF-16-widening algorithms such as NTLM, each dictionary byte becomes one UTF-16 code unit. A normal UTF-8 string is not decoded into Unicode code points: `dict('é')` supplies `Ã` and `©`. Use `dict(b'\xE9')` to restore `é`.
+
 ```text
 from hash x in '202CB962AC59075B964B07152D234B70'
 select x.dict('0123456789').min(1).max(3).noProbe().md5;

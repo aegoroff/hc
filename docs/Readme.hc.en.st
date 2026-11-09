@@ -133,6 +133,8 @@ Hash or string restore mode
   -T, --threads=<int>       the number of threads to crack hash. The half of system processors by default. The value must be between 1 and processor count.
   -h, --help                print this help and exit
 
+Restore dictionaries are byte-based. For wide-string algorithms such as NTLM, each dictionary byte is widened to one UTF-16 code unit. Non-ASCII UTF-8 text in `-a` is not decoded into Unicode characters: `-a 'é'` supplies `Ã` and `©`. In `l2h`, use a byte string such as `b'\xE9'` to restore `é`.
+
 
 File mode
 
