@@ -116,6 +116,10 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
 
     ctx->gpu_context_->pfn_prepare_(ctx->device_ix_, g_ctx.dict_, g_ctx.dict_len_,
                                     (const unsigned char *)g_ctx.hash_to_find_, ctx);
+    if (!ctx->dev_result_) {
+        gpu_cleanup(ctx);
+        return;
+    }
 
     /* Classic GPU model: walk prefix lengths; kernel expands last 2 chars.
      * pass_length_ is the PREFIX length; full password = prefix + 2.
@@ -181,7 +185,12 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
             ctx->index_start_ = start;
             ctx->batch_count_ = count;
 
+            ctx->launch_failed_ = FALSE;
             ctx->gpu_context_->pfn_run_(ctx, g_ctx.dict_len_);
+            if (ctx->launch_failed_) {
+                gpu_cleanup(ctx);
+                return;
+            }
             gpu_synchronize(ctx);
 
             /* Same accounting as classic: V + V * D^2 per launch. */

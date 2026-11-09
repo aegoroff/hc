@@ -216,6 +216,7 @@ pub const Value = union(enum) {
                     .min = h.min,
                     .max = h.max,
                     .no_probe = h.no_probe,
+                    .is_base64 = h.is_base64,
                 } };
             },
             .int, .bool => self,

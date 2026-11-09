@@ -73,6 +73,7 @@ typedef struct hc_gpu_thread_ctx {
     int max_threads_decrease_factor_;
     void* stream_; /* cudaStream_t when CUDA; NULL in stub */
     BOOL launch_in_flight_;
+    BOOL launch_failed_; /* Backend rejected the current batch; stop before accounting. */
     /* GPU-side prefix index: thread ix → prefix at index_start_+ix of
      * length pass_length_; kernel expands 2 suffix chars (md5-style). */
     uint64_t index_start_;

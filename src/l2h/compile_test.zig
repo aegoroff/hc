@@ -3858,8 +3858,8 @@ test "compile+run Base64 SHA1 restore preserves knobs and suppresses duplicate d
 
     // Assert
     try std.testing.expectEqualStrings("", got.err);
-    try std.testing.expect(std.mem.find(u8, got.out, "Initial string is: 123") != null);
-    try std.testing.expect(std.mem.find(u8, got.out, "QL0AFWMIX8NRZTKeof9cXsvbvu8=") == null);
+    const result_start = std.mem.find(u8, got.out, "Initial string is:") orelse return error.TestUnexpectedResult;
+    try std.testing.expectEqualStrings("Initial string is: 123\n", got.out[result_start..]);
 }
 
 test "compile+run Base64 restore returns hex without mutating original binding" {
@@ -3872,6 +3872,34 @@ test "compile+run Base64 restore returns hex without mutating original binding" 
     // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expect(std.mem.find(u8, got.out, "d41d8cd98f00b204e9800998ecf8427e") != null);
+}
+
+test "compile+run Base64 terminal restore prints only runner output" {
+    // Arrange
+    const query = "from hash x in '1B2M2Y8AsgTpgAmY7PhCfg==' select x.fromBase64().noProbe().md5;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expect(std.mem.startsWith(u8, got.out, "\nAttempts: 0 Time "));
+    const timing_end = 1 + std.mem.findScalar(u8, got.out[1..], '\n').?;
+    try std.testing.expectEqualStrings("Initial string is: Empty string\n", got.out[timing_end + 1 ..]);
+}
+
+test "compile+run into preserves Base64 hash settings" {
+    // Arrange
+    const query = "from hash x in '1B2M2Y8AsgTpgAmY7PhCfg==' select x.fromBase64().noProbe() into h; from string s in 'x' select h.md5;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expect(std.mem.startsWith(u8, got.out, "\nAttempts: 0 Time "));
+    const timing_end = 1 + std.mem.findScalar(u8, got.out[1..], '\n').?;
+    try std.testing.expectEqualStrings("Initial string is: Empty string\n", got.out[timing_end + 1 ..]);
 }
 
 test "compile+run fromBase64 rejects invalid receiver arity and digest" {

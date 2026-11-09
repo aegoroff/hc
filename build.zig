@@ -144,6 +144,45 @@ pub fn build(b: *std.Build) void {
     const bf_tests = b.addTest(.{ .name = "bf_tests", .root_module = bf_mod });
     const run_bf_tests = b.addRunArtifact(bf_tests);
 
+    const bf_prepare_failure_test = b.addExecutable(.{
+        .name = "bf_prepare_failure_test",
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        }),
+    });
+    bf_prepare_failure_test.root_module.addIncludePath(b.path("src/abi"));
+    bf_prepare_failure_test.root_module.addIncludePath(b.path("src/hc"));
+    bf_prepare_failure_test.root_module.addCSourceFile(.{
+        .file = b.path("src/tests/bf_prepare_failure_test.c"),
+        .flags = &.{ "-Wall", "-Wextra", "-UNDEBUG" },
+    });
+    bf_prepare_failure_test.root_module.linkLibrary(bf_lib);
+    const run_bf_prepare_failure_test = b.addRunArtifact(bf_prepare_failure_test);
+
+    const bf_run_failure_test = b.addExecutable(.{
+        .name = "bf_run_failure_test",
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        }),
+    });
+    bf_run_failure_test.root_module.addIncludePath(b.path("src/abi"));
+    bf_run_failure_test.root_module.addIncludePath(b.path("src/hc"));
+    bf_run_failure_test.root_module.addIncludePath(b.path("src/opencl"));
+    bf_run_failure_test.root_module.addCSourceFile(.{
+        .file = b.path("src/tests/bf_run_failure_test.c"),
+        .flags = &.{ "-Wall", "-Wextra", "-Wno-unused-parameter", "-UNDEBUG" },
+    });
+    bf_run_failure_test.root_module.addCSourceFile(.{
+        .file = b.path("src/opencl/ocl_common.c"),
+        .flags = &.{"-Wall"},
+    });
+    bf_run_failure_test.root_module.linkLibrary(bf_lib);
+    const run_bf_run_failure_test = b.addRunArtifact(bf_run_failure_test);
+
     const modes_mod = b.createModule(.{
         .root_source_file = b.path("src/hc/modes.zig"),
         .target = target,
@@ -189,6 +228,8 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_hash_catalog_tests.step);
     test_step.dependOn(&run_types_tests.step);
     test_step.dependOn(&run_bf_tests.step);
+    test_step.dependOn(&run_bf_prepare_failure_test.step);
+    test_step.dependOn(&run_bf_run_failure_test.step);
     test_step.dependOn(&run_modes_tests.step);
     const gpu_tests = b.addTest(.{ .root_module = gpu_mod, .name = "gpu_tests" });
     const run_gpu_tests = b.addRunArtifact(gpu_tests);

@@ -77,7 +77,7 @@ fn exprIsHash(e: *const Expr, env: *Env) bool {
     return switch (e.kind) {
         .name => |n| if (env.get(n)) |v| v == .hash else false,
         .method => |m| switch (m.kind) {
-            .hash_dict, .hash_min, .hash_max, .hash_noprobe => exprIsHash(m.recv, env),
+            .hash_dict, .hash_min, .hash_max, .hash_noprobe, .hash_from_base64 => exprIsHash(m.recv, env),
             else => false,
         },
         .prop => |p| blk: {
