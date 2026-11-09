@@ -106,7 +106,7 @@ typedef struct {
 	} while (0)
 
 __global__ static void prmd4_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
-                                    const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len,
+                                    const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len,
                                     BOOL use_wide_pass);
 __host__ static void prmd4_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len);
 __device__ static BOOL prmd4_compare(void* password, const int length);
@@ -134,7 +134,7 @@ void HC_GPU_FN(md4_on_gpu_prepare)(int device_ix, const unsigned char* dict, siz
 }
 
 __global__ void prmd4_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
-                             const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len,
+                             const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len,
                              BOOL use_wide_pass) {
     const uint32_t ix = blockDim.x * blockIdx.x + threadIdx.x;
     if (ix >= count || g_found) {
@@ -155,7 +155,7 @@ __global__ void prmd4_kernel(unsigned char* result, const uint64_t start, const 
     for (uint32_t i = 0; i < dict_length; ++i) {
         attempt[pass_len] = k_dict[i];
 
-        if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {
+        if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len) {
             if (g_found) {
                 return;
             }
@@ -177,7 +177,7 @@ __global__ void prmd4_kernel(unsigned char* result, const uint64_t start, const 
             }
         }
 
-        if (pass_len + 2u < min_len) {
+        if (pass_len + 2u < min_len || pass_len + 2u > max_len) {
             continue;
         }
         const uint32_t cur_len = pass_len + 2u;
@@ -213,7 +213,7 @@ __host__ void prmd4_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     const uint32_t min_len = ctx->passmin_ ? ctx->passmin_ : 1u;
     prmd4_kernel<<<blocks, threads, 0, GPU_STREAM(ctx)>>>(ctx->dev_result_, ctx->index_start_, count,
                                                           ctx->pass_length_, static_cast<uint32_t>(dict_len), min_len,
-                                                          ctx->use_wide_pass_);
+                                                          ctx->passmax_, ctx->use_wide_pass_);
 }
 
 __device__ __forceinline__ BOOL prmd4_compare(void* password, const int length) {

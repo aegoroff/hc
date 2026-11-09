@@ -45,7 +45,7 @@ __constant__ static const uint8_t k_s_md2[256] = {
 };
 
 __global__ static void prmd2_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
-                                    const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len);
+                                    const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len);
 __host__ static void prmd2_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len);
 
 __device__ static BOOL prmd2_hash_eq(const uint8_t* password, const int length, const uint8_t* sbox);
@@ -138,7 +138,7 @@ __device__ __forceinline__ BOOL prmd2_hash_eq(const uint8_t* password, const int
 }
 
 __global__ void prmd2_kernel(unsigned char* result, const uint64_t start, const uint32_t count, const uint32_t pass_len,
-                             const uint32_t dict_length, const uint32_t min_len) {
+                             const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len) {
     __shared__ uint8_t s_sbox[256];
     for (int i = (int)threadIdx.x; i < 256; i += (int)blockDim.x) {
         s_sbox[i] = k_s_md2[i];
@@ -159,14 +159,15 @@ __global__ void prmd2_kernel(unsigned char* result, const uint64_t start, const 
 
     for (uint32_t i = 0; i < dict_length; ++i) {
         attempt[pass_len] = k_dict[i];
-        if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u < DIGESTSIZE) {
+        if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len &&
+            pass_len + 1u < DIGESTSIZE) {
             if (prmd2_hash_eq(attempt, (int)(pass_len + 1u), s_sbox)) {
                 memcpy(result, attempt, pass_len + 1u);
                 return;
             }
         }
         /* One-shot path requires length < 16 (GPU max password is GPU_ATTEMPT_SIZE-1). */
-        if (pass_len + 2u < min_len || pass_len + 2u >= DIGESTSIZE) continue;
+        if (pass_len + 2u < min_len || pass_len + 2u > max_len || pass_len + 2u >= DIGESTSIZE) continue;
         for (uint32_t j = 0; j < dict_length; ++j) {
             attempt[pass_len + 1u] = k_dict[j];
             if (prmd2_hash_eq(attempt, (int)(pass_len + 2u), s_sbox)) {

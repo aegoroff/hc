@@ -17,7 +17,7 @@
 
 __device__ static BOOL prsha1_compare(unsigned char* password, const int length);
 __global__ static void prsha1_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
-                                     const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len);
+                                     const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len);
 __host__ static void prsha1_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len);
 
 __constant__ static uint8_t k_dict[GPU_DICT_MAX];
@@ -45,7 +45,7 @@ __host__ void HC_GPU_FN(sha1_run_on_gpu)(gpu_tread_ctx_t* ctx, const size_t dict
 }
 
 __global__ void prsha1_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
-                              const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len) {
+                              const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len) {
     const uint32_t ix = blockDim.x * blockIdx.x + threadIdx.x;
     if (ix >= count || g_found) {
         return;
@@ -61,7 +61,7 @@ __global__ void prsha1_kernel(unsigned char* result, const uint64_t start, const
     for (uint32_t i = 0; i < dict_length; ++i) {
         attempt[pass_len] = k_dict[i];
 
-        if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {
+        if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len) {
             if (g_found) {
                 return;
             }
@@ -72,7 +72,7 @@ __global__ void prsha1_kernel(unsigned char* result, const uint64_t start, const
             }
         }
 
-        if (pass_len + 2u < min_len) {
+        if (pass_len + 2u < min_len || pass_len + 2u > max_len) {
             continue;
         }
         for (uint32_t j = 0; j < dict_length; ++j) {

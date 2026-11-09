@@ -20,7 +20,7 @@
 #define ROTR32(x, n) (((x) >> (n)) | ((x) << (32 - (n))))
 
 __global__ static void prblake3_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
-                                       const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len);
+                                       const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len);
 __device__ static BOOL prblake3_compare(unsigned char* password, const int length, uint8_t* hash);
 __device__ static void prblake3_hash(const uint8_t* message, size_t len, uint8_t* hash);
 __device__ static void prblake3_compress(uint32_t* cv, const uint8_t* block, uint8_t block_len, uint8_t flags);

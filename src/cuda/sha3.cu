@@ -202,7 +202,7 @@ __device__ static BOOL pr##name##_compare(unsigned char* password, const int len
 }                                                                                                        \
 __global__ static void pr##name##_kernel(unsigned char* result, const uint64_t start, const uint32_t count,\
                                          const uint32_t pass_len, const uint32_t dict_length,             \
-                                         const uint32_t min_len) {                                       \
+                                         const uint32_t min_len, const uint32_t max_len) {                                       \
     const uint32_t ix = blockDim.x * blockIdx.x + threadIdx.x;                                           \
     if (ix >= count) return;                                                                             \
     uint64_t idx = start + ix;                                                                           \
@@ -213,13 +213,13 @@ __global__ static void pr##name##_kernel(unsigned char* result, const uint64_t s
     }                                                                                                    \
     for (uint32_t i = 0; i < dict_length; ++i) {                                                         \
         attempt[pass_len] = k_dict[i];                                                                   \
-        if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {                                           \
+        if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len) {                                           \
             if (pr##name##_compare(attempt, (int)(pass_len + 1u))) {                                     \
                 memcpy(result, attempt, pass_len + 1u);                                                  \
                 return;                                                                                  \
             }                                                                                            \
         }                                                                                                \
-        if (pass_len + 2u < min_len) continue;                                                           \
+        if (pass_len + 2u < min_len || pass_len + 2u > max_len) continue;                                                           \
         for (uint32_t j = 0; j < dict_length; ++j) {                                                     \
             attempt[pass_len + 1u] = k_dict[j];                                                          \
             if (pr##name##_compare(attempt, (int)(pass_len + 2u))) {                                     \

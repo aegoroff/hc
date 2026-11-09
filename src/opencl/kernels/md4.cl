@@ -81,7 +81,7 @@ __kernel void prmd4_kernel(__global uchar* result,
                           const uint count,
                           const uint pass_len,
                           const uint dict_length,
-                          const uint min_len,
+                          const uint min_len, const uint max_len,
                           const uint use_wide_pass) {
   const uint ix = get_global_id(0);
   if (ix >= count || *g_found) return;
@@ -94,7 +94,7 @@ __kernel void prmd4_kernel(__global uchar* result,
   }
   for (uint i = 0; i < dict_length; ++i) {
     attempt[pass_len] = k_dict[i];
-    if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {
+    if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len) {
       if (*g_found) return;
       const uint cur_len = pass_len + 1u;
       const uchar* cmp_buf;
@@ -114,7 +114,7 @@ __kernel void prmd4_kernel(__global uchar* result,
         return;
       }
     }
-    if (pass_len + 2u < min_len) continue;
+    if (pass_len + 2u < min_len || pass_len + 2u > max_len) continue;
     for (uint j = 0; j < dict_length; ++j) {
       attempt[pass_len + 1u] = k_dict[j];
       if (*g_found) return;

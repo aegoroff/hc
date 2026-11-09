@@ -278,6 +278,12 @@ pub fn writeLineText(w: *std.Io.Writer, text: []const u8, escape_bar: bool) std.
     };
 }
 
+/// GNU checksum readers require a leading `\` when the file name is escaped.
+pub fn writeChecksumMarker(w: *std.Io.Writer, path: []const u8) std.Io.Writer.Error!void {
+    const escaped_chars = if (comptime builtin.target.os.tag == .windows) "\n\r" else "\\\n\r";
+    if (std.mem.indexOfAny(u8, path, escaped_chars) != null) try w.writeByte('\\');
+}
+
 /// Inverse of the POSIX `writeLineText` encoding. `\|` is a bar; checksum
 /// lines never emit that sequence because they leave `|` alone and double every `\`.
 fn unescapeLineText(text: []const u8, buf: []u8) std.Io.Writer.Error![]u8 {

@@ -324,6 +324,37 @@ test "compile+run join/orderby query string" {
     try std.testing.expectEqualStrings("", got.out);
 }
 
+test "compile+run join restores outer bindings for every match" {
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b", .data = "b" });
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+    const query = try std.testing.allocator.print(
+        \\from dir d in '{s}'
+        \\from string a in 'abc'
+        \\join file b in d on 1 equals 1
+        \\let a = a.md5
+        \\select a;
+    ,
+        .{path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings(
+        \\900150983cd24fb0d6963f7d28e17f72
+        \\900150983cd24fb0d6963f7d28e17f72
+        \\
+    , got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
 test "compile+run regex where query string" {
     // Arrange
     const query = "from string s in 'abc123' where s ~ '[0-9]+' select s;";

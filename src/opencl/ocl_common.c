@@ -173,6 +173,7 @@ void hc_ocl_algo_run(hc_ocl_algo_t* algo, gpu_tread_ctx_t* ctx, size_t dict_len)
     const cl_uint pass_len = ctx->pass_length_;
     const cl_uint cl_dict_len = (cl_uint)dict_len;
     const cl_uint cl_min_len = min_len;
+    const cl_uint cl_max_len = ctx->passmax_;
 
     api->clSetKernelArg(algo->kernel, 0, sizeof(cl_mem), &algo->result_buf);
     api->clSetKernelArg(algo->kernel, 1, sizeof(cl_mem), &algo->dict_buf);
@@ -183,9 +184,10 @@ void hc_ocl_algo_run(hc_ocl_algo_t* algo, gpu_tread_ctx_t* ctx, size_t dict_len)
     api->clSetKernelArg(algo->kernel, 6, sizeof(cl_uint), &pass_len);
     api->clSetKernelArg(algo->kernel, 7, sizeof(cl_uint), &cl_dict_len);
     api->clSetKernelArg(algo->kernel, 8, sizeof(cl_uint), &cl_min_len);
+    api->clSetKernelArg(algo->kernel, 9, sizeof(cl_uint), &cl_max_len);
     if (algo->pass_wide_arg) {
         const cl_uint use_wide = ctx->use_wide_pass_ ? 1u : 0u;
-        api->clSetKernelArg(algo->kernel, 9, sizeof(cl_uint), &use_wide);
+        api->clSetKernelArg(algo->kernel, 10, sizeof(cl_uint), &use_wide);
     }
 
     size_t local = threads;

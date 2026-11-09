@@ -275,7 +275,7 @@ const PipeCtx = struct {
     out: *std.Io.Writer,
     depth: u32,
     parent: std.mem.Allocator,
-    /// Allocator for the current row (the streaming `FromOp`'s row arena, else parent).
+    /// Allocator for the current row (the streaming operator's row arena, else parent).
     row_alloc: std.mem.Allocator,
     /// Script env for terminal `into id;` binds (same pointer as drive outer).
     script: *Env,
@@ -572,18 +572,22 @@ const JoinOp = struct {
     outer_env: ?*Env = null,
     /// Cached `normalize(outer_key)` for the current outer row.
     outer_key_val: Value = .{ .bool = false },
-    /// Scratch / yield env: one clone of the outer, range binding overwritten per candidate.
+    /// Scratch / yield env: a fresh clone of the outer for each candidate.
     row: Env = .{},
     /// Group-join yield env: outer-arena clone of the outer row plus the `into`
     /// binding. The child row env's map lives in the child's row arena, which
     /// the next pull recycles, so it must not be mutated or yielded directly.
     group_env: Env = .{},
-    /// Per-outer-row state: `row`, `group_env`, the outer key and the inner
-    /// keys evaluated against it. Reset when the next outer row is pulled.
+    /// Per-outer-row state: group-join envs, the outer key and the inner keys
+    /// evaluated against it. Reset when the next outer row is pulled.
     outer_arena: ?std.heap.ArenaAllocator = null,
+    /// Per-candidate row and downstream scratch. Reset after the previous
+    /// candidate has been pulled, before cloning the next one.
+    row_arena: ?std.heap.ArenaAllocator = null,
 
     fn open(self: *JoinOp, pc: *PipeCtx, _: *Env) Error!void {
         if (self.outer_arena == null) self.outer_arena = .init(pc.parent);
+        if (self.row_arena == null) self.row_arena = .init(pc.parent);
         self.clearInners();
         self.inner_index = 0;
         self.outer_env = null;
@@ -645,8 +649,10 @@ const JoinOp = struct {
             while (self.inner_index < self.inners.len) {
                 const inner_val = self.inners[self.inner_index];
                 self.inner_index += 1;
-                pc.row_alloc = oalloc;
-                try self.row.put(oalloc, self.join.range, inner_val);
+                const ralloc = resetArena(&self.row_arena.?);
+                pc.row_alloc = ralloc;
+                self.row = try self.outer_env.?.clone(ralloc);
+                try self.row.put(ralloc, self.join.range, inner_val);
                 if (try keyEqualsCached(pc.ctx(), self.outer_key_val, self.join.outer_key, self.join.inner_key, &self.row, pc.depth)) {
                     return &self.row;
                 }
@@ -660,6 +666,10 @@ const JoinOp = struct {
         self.inners = &.{};
         self.inners_cached = false;
         self.inners_arena.deinit();
+        if (self.row_arena) |*arena| {
+            arena.deinit();
+            self.row_arena = null;
+        }
         if (self.outer_arena) |*arena| {
             arena.deinit();
             self.outer_arena = null;
@@ -1693,10 +1703,11 @@ const PeakAllocator = struct {
     }
 };
 
-const PerRowShape = enum { nested_from, join };
+const PerRowShape = enum { nested_from, join, join_candidates, join_candidates_group };
 
-/// Peak bytes of `from dir d in '<base>' from file f in d <shape> select …`
-/// over a per-query arena, as `frontend.handleQueryAst` runs it.
+/// Peak bytes of a streaming query over a per-query arena, as
+/// `frontend.handleQueryAst` runs it. Candidate shapes use one outer row and
+/// reject every file candidate so its clones cannot accumulate unnoticed.
 fn peakPerRowQuery(base: []const u8, shape: PerRowShape) !usize {
     var peak: PeakAllocator = .{ .child = std.testing.allocator };
     var arena = std.heap.ArenaAllocator.init(peak.allocator());
@@ -1726,14 +1737,35 @@ fn peakPerRowQuery(base: []const u8, shape: PerRowShape) !usize {
     };
     var c_inner: plan.Clause = switch (shape) {
         .nested_from => .{ .from = &from_t },
-        .join => .{ .join = &join_t },
+        else => .{ .join = &join_t },
     };
     var from_f: plan.From = .{ .kind = .file, .range = "f", .source = &name_d, .then = &c_inner };
     var c_from_f: plan.Clause = .{ .from = &from_f };
-    var root: plan.From = .{ .kind = .dir, .range = "d", .source = &dir_lit, .then = &c_from_f };
+    var root_files: plan.From = .{ .kind = .dir, .range = "d", .source = &dir_lit, .then = &c_from_f };
 
+    var name_a: Expr = .{ .kind = .{ .name = "a" } };
+    var abc_lit: Expr = .{ .kind = .{ .string_lit = "abc" } };
+    var zero_lit: Expr = .{ .kind = .{ .int_lit = 0 } };
+    var one_lit: Expr = .{ .kind = .{ .int_lit = 1 } };
+    var select_a: plan.Select = .{ .expr = &name_a };
+    var c_select_a: plan.Clause = .{ .select = &select_a };
+    var join_candidates: plan.Join = .{
+        .kind = .file,
+        .range = "b",
+        .source = &name_d,
+        .outer_key = &zero_lit,
+        .inner_key = &one_lit,
+        .group_into = if (shape == .join_candidates_group) "g" else null,
+        .then = &c_select_a,
+    };
+    var c_join_candidates: plan.Clause = .{ .join = &join_candidates };
+    var from_a: plan.From = .{ .kind = .string, .range = "a", .source = &abc_lit, .then = &c_join_candidates };
+    var c_from_a: plan.Clause = .{ .from = &from_a };
+    var root_candidates: plan.From = .{ .kind = .dir, .range = "d", .source = &dir_lit, .then = &c_from_a };
+
+    const root = if (shape == .join_candidates or shape == .join_candidates_group) &root_candidates else &root_files;
     var outer: Env = .{};
-    try runPipeline(ctx, &root, &outer, &outer, 0, .sink, a);
+    try runPipeline(ctx, root, &outer, &outer, 0, .sink, a);
     return peak.peak;
 }
 
@@ -1752,9 +1784,7 @@ fn makeProbeFiles(io: std.Io, base: []const u8, count: usize) !void {
 }
 
 test "nested from and join over a dir walk keep per-row memory bounded" {
-    // Per-outer-row state (bound source, outer env copy, join key) used to
-    // pile up in the query arena: ~700 bytes per walked file, so a big tree
-    // grew without bound. Peak memory must not depend on the file count.
+    // Per-row state must not pile up across outer rows or join candidates.
     // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
     const few = "l2h_per_row_few_probe";
@@ -1773,6 +1803,14 @@ test "nested from and join over a dir walk keep per-row memory bounded" {
         errdefer std.debug.print("{t}: peak {d} bytes for 16 files, {d} for 1024\n", .{ shape, peak_few, peak_many });
         try std.testing.expect(peak_many < peak_few + 64 * 1024);
     }
+
+    // Act: compare per-candidate growth with the same materialized inners in a group join.
+    const candidate_growth = try peakPerRowQuery(many, .join_candidates) - try peakPerRowQuery(few, .join_candidates);
+    const group_growth = try peakPerRowQuery(many, .join_candidates_group) - try peakPerRowQuery(few, .join_candidates_group);
+
+    // Assert
+    errdefer std.debug.print("join candidate growth {d} bytes, materialized inners {d}\n", .{ candidate_growth, group_growth });
+    try std.testing.expect(candidate_growth < group_growth + 64 * 1024);
 }
 
 const MatShape = enum { order_by, group_by };

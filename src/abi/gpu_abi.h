@@ -155,12 +155,12 @@ HC_GPU_HASHES(HC_GPU_HASH_DECL)
     } while (0)
 #endif
 
- /* Prefix index + 2-char expand (md5-style). min_len is passmin.
+ /* Prefix index + 2-char expand (md5-style). min_len/max_len are passmin/passmax.
   * Caller must keep pass_len <= GPU_ATTEMPT_SIZE-3 so attempt[] / result NUL fit. */
 #ifndef KERNEL_WITHOUT_ALLOCATION
 #define KERNEL_WITHOUT_ALLOCATION(func_name, compare_func)                                              \
 __global__ void func_name(unsigned char* result, const uint64_t start, const uint32_t count,            \
-                          const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len) { \
+                          const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len) { \
     const uint32_t ix = blockDim.x * blockIdx.x + threadIdx.x;                                          \
     if (ix >= count) return;                                                                            \
     if (pass_len + 2u >= (uint32_t)GPU_ATTEMPT_SIZE) return;                                            \
@@ -172,13 +172,13 @@ __global__ void func_name(unsigned char* result, const uint64_t start, const uin
     }                                                                                                   \
     for (uint32_t i = 0; i < dict_length; ++i) {                                                        \
         attempt[pass_len] = k_dict[i];                                                                  \
-        if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {                                          \
+        if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len) {                                          \
             if (compare_func(attempt, (int)(pass_len + 1u))) {                                          \
                 memcpy(result, attempt, pass_len + 1u);                                                 \
                 return;                                                                                 \
             }                                                                                           \
         }                                                                                               \
-        if (pass_len + 2u < min_len) continue;                                                          \
+        if (pass_len + 2u < min_len || pass_len + 2u > max_len) continue;                                                          \
         for (uint32_t j = 0; j < dict_length; ++j) {                                                    \
             attempt[pass_len + 1u] = k_dict[j];                                                         \
             if (compare_func(attempt, (int)(pass_len + 2u))) {                                          \
@@ -193,7 +193,7 @@ __global__ void func_name(unsigned char* result, const uint64_t start, const uin
 #ifndef KERNEL_WITH_ALLOCATION
 #define KERNEL_WITH_ALLOCATION(func_name, compare_func, T, HL)                                          \
 __global__ void func_name(unsigned char* result, const uint64_t start, const uint32_t count,            \
-                          const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len) { \
+                          const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len) { \
     const uint32_t ix = blockDim.x * blockIdx.x + threadIdx.x;                                          \
     if (ix >= count) return;                                                                            \
     if (pass_len + 2u >= (uint32_t)GPU_ATTEMPT_SIZE) return;                                            \
@@ -206,13 +206,13 @@ __global__ void func_name(unsigned char* result, const uint64_t start, const uin
     }                                                                                                   \
     for (uint32_t i = 0; i < dict_length; ++i) {                                                        \
         attempt[pass_len] = k_dict[i];                                                                  \
-        if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {                                          \
+        if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len) {                                          \
             if (compare_func(attempt, (int)(pass_len + 1u), hash)) {                                    \
                 memcpy(result, attempt, pass_len + 1u);                                                 \
                 return;                                                                                 \
             }                                                                                           \
         }                                                                                               \
-        if (pass_len + 2u < min_len) continue;                                                          \
+        if (pass_len + 2u < min_len || pass_len + 2u > max_len) continue;                                                          \
         for (uint32_t j = 0; j < dict_length; ++j) {                                                    \
             attempt[pass_len + 1u] = k_dict[j];                                                         \
             if (compare_func(attempt, (int)(pass_len + 2u), hash)) {                                    \
@@ -232,7 +232,7 @@ __global__ void func_name(unsigned char* result, const uint64_t start, const uin
         const uint32_t blocks = (count + threads - 1u) / threads;                                        \
         const uint32_t min_len = (ctx)->passmin_ ? (ctx)->passmin_ : 1u;                                \
         kernel_fn<<<blocks, threads, 0, GPU_STREAM(ctx)>>>((ctx)->dev_result_, (ctx)->index_start_,     \
-            count, (ctx)->pass_length_, static_cast<uint32_t>(dict_len), min_len);                      \
+            count, (ctx)->pass_length_, static_cast<uint32_t>(dict_len), min_len, (ctx)->passmax_);     \
     } while (0)
 #endif
 

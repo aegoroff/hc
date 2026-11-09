@@ -19,7 +19,7 @@
 #define HASH_LEN (STATE_LEN-2)  // In words
 
 __device__ static BOOL prsha384_compare(unsigned char* password, const int length, uint64_t* hash);
-__global__ static void prsha384_kernel(unsigned char* result, const uint64_t start, const uint32_t count, const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len);
+__global__ static void prsha384_kernel(unsigned char* result, const uint64_t start, const uint32_t count, const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len);
 __device__ static void prsha512_compress(uint64_t state[], const uint8_t block[]);
 __device__ static void prsha384_hash(const uint8_t* message, size_t len, uint64_t* hash);
 __host__ static void prsha384_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len);
