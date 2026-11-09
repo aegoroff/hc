@@ -21,7 +21,10 @@ void hc_ocl_algo_entry_prepare(hc_ocl_algo_t* algo, const char* src, const char*
     (void)device_ix;
     algo->pass_wide_arg = pass_wide;
     hc_ocl_set_active_algo(algo);
-    (void)hc_ocl_algo_prepare(algo, src, kernel_name, dict, dict_len, hash, hash_len, ctx);
+    ctx->dev_result_ = NULL;
+    if (hc_ocl_algo_prepare(algo, src, kernel_name, dict, dict_len, hash, hash_len, ctx) != 0) {
+        hc_ocl_algo_release_bufs(algo);
+    }
 }
 
 static void hc_ocl_active_run(gpu_tread_ctx_t* ctx, const size_t dict_len) {
@@ -149,7 +152,9 @@ int hc_ocl_algo_prepare(hc_ocl_algo_t* algo, const char* src, const char* kernel
 }
 
 void hc_ocl_algo_run(hc_ocl_algo_t* algo, gpu_tread_ctx_t* ctx, size_t dict_len) {
-    if (!algo || !ctx || !algo->ready || !algo->kernel) return;
+    if (!ctx) return;
+    ctx->launch_failed_ = TRUE;
+    if (!algo || !algo->ready || !algo->kernel) return;
 
     hc_ocl_api_t* api = hc_ocl_runtime_api();
     cl_command_queue queue = hc_ocl_runtime_queue();
@@ -193,4 +198,5 @@ void hc_ocl_algo_run(hc_ocl_algo_t* algo, gpu_tread_ctx_t* ctx, size_t dict_len)
     api->clEnqueueReadBuffer(queue, algo->result_buf, CL_FALSE, 0, GPU_ATTEMPT_SIZE, ctx->result_, 0, NULL,
                              NULL);
     ctx->launch_in_flight_ = TRUE;
+    ctx->launch_failed_ = FALSE;
 }
