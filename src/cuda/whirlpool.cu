@@ -17,7 +17,7 @@
 #define BLOCK_LEN 64  // In bytes
 #define STATE_LEN 64  // In bytes
 
-__global__ static void prwhirl_kernel(unsigned char* result, const uint64_t start, const uint32_t count, const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len);
+__global__ static void prwhirl_kernel(unsigned char* result, const uint64_t start, const uint32_t count, const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len);
 __device__ static BOOL prwhirl_compare(unsigned char* password, const int length, uint8_t* hash);
 __device__ static void prwhirl_compress(uint8_t* state, const uint8_t* block);
 __device__ static void prwhirl_round(uint64_t* block, const uint64_t* key);

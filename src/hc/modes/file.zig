@@ -296,6 +296,7 @@ pub fn writeOutcome(
             try out.print("{s}{s}\n", .{ t.SFV_SEPARATOR, hash_repr });
         },
         .checksum => {
+            try lib.writeChecksumMarker(out, path);
             try out.print("{s}{s}", .{ hash_repr, t.CHECKSUM_SEPARATOR });
             try lib.writeLineText(out, path, false);
             try out.writeByte('\n');
@@ -1131,9 +1132,27 @@ test "writeOutcome keeps a newline or bar inside the file name on one line" {
 
     // Assert
     try std.testing.expectEqualStrings("a\\nb\\|c | 3 bytes | deadbeef\n", std.Io.Writer.buffered(&listing));
-    try std.testing.expectEqualStrings("deadbeef a\\nb|c\n", std.Io.Writer.buffered(&checksum));
+    try std.testing.expectEqualStrings("\\deadbeef a\\nb|c\n", std.Io.Writer.buffered(&checksum));
     try std.testing.expectEqualStrings("a\\nb|c    deadbeef\n", std.Io.Writer.buffered(&sfv));
     try std.testing.expectEqual(@as(usize, 1), std.mem.count(u8, std.Io.Writer.buffered(&listing), "\n"));
+}
+
+test "writeOutcome checksum marks an escaped backslash in GNU format" {
+    // Arrange
+    const outcome = testHashed(null);
+    const opts: t.FileOptions = .{ .low_case = true };
+    var buf: [128]u8 = undefined;
+    var out: std.Io.Writer = .fixed(&buf);
+
+    // Act
+    try writeOutcome(&out, "a\\b", &outcome, .checksum, &opts);
+
+    // Assert
+    const expected = if (comptime builtin.target.os.tag == .windows)
+        "deadbeef a\\b\n"
+    else
+        "\\deadbeef a\\\\b\n";
+    try std.testing.expectEqualStrings(expected, std.Io.Writer.buffered(&out));
 }
 
 test "OutputFormat.fromOptions prefers sfv over checksum" {

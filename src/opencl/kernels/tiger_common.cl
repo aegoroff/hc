@@ -655,7 +655,7 @@ __kernel void TIGER_KERNEL(__global uchar* result,
                           const uint count,
                           const uint pass_len,
                           const uint dict_length,
-                          const uint min_len) {
+                          const uint min_len, const uint max_len) {
   __local ulong sT1[256], sT2[256], sT3[256], sT4[256];
   prtiger_load_sboxes(sT1, sT2, sT3, sT4);
 
@@ -669,7 +669,7 @@ __kernel void TIGER_KERNEL(__global uchar* result,
   }
   for (uint i = 0; i < dict_length; ++i) {
     attempt[pass_len] = k_dict[i];
-    if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {
+    if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len) {
       if (*g_found) return;
       if (TIGER_COMPARE(k_hash, attempt, (int)(pass_len + 1u), sT1, sT2, sT3, sT4)) {
         for (uint k = 0; k < pass_len + 1u; ++k) result[k] = attempt[k];
@@ -678,7 +678,7 @@ __kernel void TIGER_KERNEL(__global uchar* result,
         return;
       }
     }
-    if (pass_len + 2u < min_len) continue;
+    if (pass_len + 2u < min_len || pass_len + 2u > max_len) continue;
     for (uint j = 0; j < dict_length; ++j) {
       attempt[pass_len + 1u] = k_dict[j];
       if (*g_found) return;

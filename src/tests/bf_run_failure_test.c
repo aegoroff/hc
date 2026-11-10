@@ -8,6 +8,7 @@ static unsigned int sync_calls;
 static unsigned int cleanup_calls;
 static unsigned int fail_on_run;
 static hc_ocl_algo_t algo;
+static uint32_t max_len_arg;
 
 static cl_int write_buffer(cl_command_queue queue, cl_mem buffer, cl_bool blocking,
                            size_t offset, size_t size, const void *data, cl_uint count,
@@ -16,6 +17,7 @@ static cl_int write_buffer(cl_command_queue queue, cl_mem buffer, cl_bool blocki
 }
 
 static cl_int set_arg(cl_kernel kernel, cl_uint index, size_t size, const void *value) {
+    if (index == 9 && size == sizeof(max_len_arg) && value) max_len_arg = *(const uint32_t *)value;
     return CL_SUCCESS;
 }
 
@@ -100,6 +102,7 @@ int main(void) {
         assert(run_calls == fail_on_run);
         assert(sync_calls == fail_on_run - 1);
         assert(cleanup_calls == 1);
+        assert(max_len_arg == 5);
         assert(bf_core_get_attempts() == (fail_on_run - 1) * 5);
         assert(!ctx.found_in_the_thread_);
         assert(ctx.dev_result_ == NULL);

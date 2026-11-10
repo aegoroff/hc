@@ -161,6 +161,23 @@ pub fn build(b: *std.Build) void {
     bf_prepare_failure_test.root_module.linkLibrary(bf_lib);
     const run_bf_prepare_failure_test = b.addRunArtifact(bf_prepare_failure_test);
 
+    const bf_gpu_bounds_test = b.addExecutable(.{
+        .name = "bf_gpu_bounds_test",
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        }),
+    });
+    bf_gpu_bounds_test.root_module.addIncludePath(b.path("src/abi"));
+    bf_gpu_bounds_test.root_module.addIncludePath(b.path("src/hc"));
+    bf_gpu_bounds_test.root_module.addCSourceFile(.{
+        .file = b.path("src/tests/bf_gpu_bounds_test.c"),
+        .flags = &.{ "-Wall", "-Wextra", "-UNDEBUG" },
+    });
+    bf_gpu_bounds_test.root_module.linkLibrary(bf_lib);
+    const run_bf_gpu_bounds_test = b.addRunArtifact(bf_gpu_bounds_test);
+
     const bf_run_failure_test = b.addExecutable(.{
         .name = "bf_run_failure_test",
         .root_module = b.createModule(.{
@@ -229,6 +246,7 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_types_tests.step);
     test_step.dependOn(&run_bf_tests.step);
     test_step.dependOn(&run_bf_prepare_failure_test.step);
+    test_step.dependOn(&run_bf_gpu_bounds_test.step);
     test_step.dependOn(&run_bf_run_failure_test.step);
     test_step.dependOn(&run_modes_tests.step);
     const gpu_tests = b.addTest(.{ .root_module = gpu_mod, .name = "gpu_tests" });

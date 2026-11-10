@@ -374,6 +374,14 @@ fn gpuResultLen(result: []const u8) usize {
     return std.mem.findScalar(u8, result, 0) orelse result.len;
 }
 
+fn gpuResultPassword(gpa: std.mem.Allocator, result: []const u8, use_wide: bool) ![]u8 {
+    if (!use_wide) return gpa.dupe(u8, result);
+    const wide = try gpa.alloc(u16, result.len);
+    defer gpa.free(wide);
+    for (wide, result) |*unit, byte| unit.* = byte;
+    return std.unicode.utf16LeToUtf8Alloc(gpa, wide);
+}
+
 fn runBruteForce(
     arena: std.mem.Allocator,
     writer: *std.Io.Writer,
@@ -529,7 +537,7 @@ fn runBruteForce(
                     // length GPU_ATTEMPT_SIZE fills the slot. Never use mem.len.
                     const len = gpuResultLen(gctx.result_[0..gpu.GPU_ATTEMPT_SIZE]);
                     if (len > 0) {
-                        found_pass = try arena.dupe(u8, gctx.result_[0..len]);
+                        found_pass = try gpuResultPassword(arena, gctx.result_[0..len], use_wide);
                         gpu_found = true;
                     }
                 }
@@ -779,6 +787,18 @@ test "gpuMaxPasswordLen leaves room for trailing NUL" {
     // Assert
     try std.testing.expectEqual(@as(u32, @intCast(gpu.GPU_ATTEMPT_SIZE - 1)), len);
     try std.testing.expect(len >= 3);
+}
+
+test "gpuResultPassword converts wide non-ASCII bytes to UTF-8" {
+    // Arrange
+    const raw = [_]u8{ 0xe9, 0xe9, 0xe9, 0xe9 };
+
+    // Act
+    const got = try gpuResultPassword(std.testing.allocator, &raw, true);
+    defer std.testing.allocator.free(got);
+
+    // Assert
+    try std.testing.expectEqualStrings("\xc3\xa9\xc3\xa9\xc3\xa9\xc3\xa9", got);
 }
 
 test "gpuResultLen full buffer without NUL uses slot size" {

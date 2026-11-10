@@ -155,7 +155,16 @@ fn formatSfv(gpa: std.mem.Allocator, rec: *const value.Record) Error![]u8 {
 
 fn formatChecksum(gpa: std.mem.Allocator, rec: *const value.Record) Error![]u8 {
     const pair = try splitLabeledPair(rec, "path");
-    return try joinTwo(gpa, pair.other, pair.label, modes.types.CHECKSUM_SEPARATOR);
+    var out: std.Io.Writer.Allocating = .init(gpa);
+    errdefer out.deinit();
+    switch (pair.label) {
+        .string => |s| try lib.writeChecksumMarker(&out.writer, s.bytes),
+        else => {},
+    }
+    try writeSfvField(&out.writer, pair.other);
+    try out.writer.writeAll(modes.types.CHECKSUM_SEPARATOR);
+    try writeSfvField(&out.writer, pair.label);
+    return try out.toOwnedSlice();
 }
 
 const LabeledPair = struct { label: value.Value, other: value.Value };
@@ -320,9 +329,29 @@ test "checksum and sfv keep a newline inside the name on one line" {
     defer std.testing.allocator.free(sfv);
 
     // Assert
-    try std.testing.expectEqualStrings("00000000 a\\nb|c", checksum);
+    try std.testing.expectEqualStrings("\\00000000 a\\nb|c", checksum);
     try std.testing.expectEqualStrings("a\\nb    00000000", sfv);
     try std.testing.expect(std.mem.findScalar(u8, checksum, '\n') == null);
+}
+
+test "checksum marks an escaped backslash in GNU format" {
+    // Arrange
+    var fields = [_]value.RecordField{
+        .{ .name = "path", .value = value.Value.plainStr("a\\b") },
+        .{ .name = "crc32", .value = value.Value.plainStr("00000000") },
+    };
+    var rec: value.Record = .{ .fields = &fields };
+
+    // Act
+    const checksum = try callFormatter(std.testing.allocator, .checksum, &rec, &.{});
+    defer std.testing.allocator.free(checksum);
+
+    // Assert
+    const expected = if (comptime @import("builtin").target.os.tag == .windows)
+        "00000000 a\\b"
+    else
+        "\\00000000 a\\\\b";
+    try std.testing.expectEqualStrings(expected, checksum);
 }
 
 test "sfv rejects missing name field" {

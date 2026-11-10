@@ -18,7 +18,7 @@
 #define STATE_LEN 8  // In words
 
 __device__ static BOOL prsha256_compare(unsigned char* password, const int length);
-__global__ static void prsha256_kernel(unsigned char* result, const uint64_t start, const uint32_t count, const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len);
+__global__ static void prsha256_kernel(unsigned char* result, const uint64_t start, const uint32_t count, const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len);
 __device__ static void prsha256_compress(uint32_t state[], const uint8_t block[]);
 __device__ static void prsha256_hash(const uint8_t* message, size_t len, uint32_t* hash);
 __host__ static void prsha256_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len);

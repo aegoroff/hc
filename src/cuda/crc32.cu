@@ -65,7 +65,7 @@ __constant__ static uint32_t crc_tab[] = { /* CRC polynomial 0xedb88320 */
 
 __device__ static BOOL prcrc32_compare(unsigned char* password, int length);
 __global__ static void prcrc32_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
-                                      const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len);
+                                      const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len);
 __host__ static void prcrc32_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len);
 
 __constant__ static unsigned char k_dict[GPU_DICT_MAX];
@@ -93,7 +93,7 @@ __host__ void HC_GPU_FN(crc32_run_on_gpu)(gpu_tread_ctx_t* ctx, const size_t dic
 }
 
 __global__ void prcrc32_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
-                               const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len) {
+                               const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len) {
     const uint32_t ix = blockDim.x * blockIdx.x + threadIdx.x;
     if (ix >= count || g_found) {
         return;
@@ -109,7 +109,7 @@ __global__ void prcrc32_kernel(unsigned char* result, const uint64_t start, cons
     for (uint32_t i = 0; i < dict_length; ++i) {
         attempt[pass_len] = k_dict[i];
 
-        if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {
+        if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len) {
             if (g_found) {
                 return;
             }
@@ -120,7 +120,7 @@ __global__ void prcrc32_kernel(unsigned char* result, const uint64_t start, cons
             }
         }
 
-        if (pass_len + 2u < min_len) {
+        if (pass_len + 2u < min_len || pass_len + 2u > max_len) {
             continue;
         }
         for (uint32_t j = 0; j < dict_length; ++j) {

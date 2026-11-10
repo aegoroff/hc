@@ -542,9 +542,9 @@ __device__ __align__(16) static const uint64_t T4[256] = {
 
 
 __global__ static void prtiger_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
-                                      const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len);
+                                      const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len);
 __global__ static void prtiger2_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
-                                       const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len);
+                                       const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len);
 __device__ static void prtiger_hash(const uint8_t* message, size_t len, uint8_t* hash, uint8_t pad_byte,
                                      const uint64_t* T1s, const uint64_t* T2s, const uint64_t* T3s,
                                      const uint64_t* T4s);
@@ -618,7 +618,7 @@ __device__ __forceinline__ BOOL prtiger_match(const uint8_t* attempt, uint32_t l
 }
 
 __global__ void prtiger_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
-                               const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len) {
+                               const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len) {
     __shared__ uint64_t sT1[256], sT2[256], sT3[256], sT4[256];
     prtiger_load_sboxes(sT1, sT2, sT3, sT4);
 
@@ -632,7 +632,7 @@ __global__ void prtiger_kernel(unsigned char* result, const uint64_t start, cons
     }
     for (uint32_t i = 0; i < dict_length; ++i) {
         attempt[pass_len] = k_dict[i];
-        if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {
+        if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len) {
             if (g_found) return;
             if (prtiger_match(attempt, pass_len + 1u, 0x01, sT1, sT2, sT3, sT4)) {
                 memcpy(result, attempt, pass_len + 1u);
@@ -640,7 +640,7 @@ __global__ void prtiger_kernel(unsigned char* result, const uint64_t start, cons
                 return;
             }
         }
-        if (pass_len + 2u < min_len) continue;
+        if (pass_len + 2u < min_len || pass_len + 2u > max_len) continue;
         for (uint32_t j = 0; j < dict_length; ++j) {
             attempt[pass_len + 1u] = k_dict[j];
             if (g_found) return;
@@ -654,7 +654,7 @@ __global__ void prtiger_kernel(unsigned char* result, const uint64_t start, cons
 }
 
 __global__ void prtiger2_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
-                                const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len) {
+                                const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len, const uint32_t max_len) {
     __shared__ uint64_t sT1[256], sT2[256], sT3[256], sT4[256];
     prtiger_load_sboxes(sT1, sT2, sT3, sT4);
 
@@ -668,7 +668,7 @@ __global__ void prtiger2_kernel(unsigned char* result, const uint64_t start, con
     }
     for (uint32_t i = 0; i < dict_length; ++i) {
         attempt[pass_len] = k_dict[i];
-        if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {
+        if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len) {
             if (g_found) return;
             if (prtiger_match(attempt, pass_len + 1u, 0x80, sT1, sT2, sT3, sT4)) {
                 memcpy(result, attempt, pass_len + 1u);
@@ -676,7 +676,7 @@ __global__ void prtiger2_kernel(unsigned char* result, const uint64_t start, con
                 return;
             }
         }
-        if (pass_len + 2u < min_len) continue;
+        if (pass_len + 2u < min_len || pass_len + 2u > max_len) continue;
         for (uint32_t j = 0; j < dict_length; ++j) {
             attempt[pass_len + 1u] = k_dict[j];
             if (g_found) return;
