@@ -306,6 +306,34 @@ test "high bytes do not panic the lexer" {
     }
 }
 
+test "embedded NUL rejects the entire source" {
+    // Arrange
+    const samples = [_][]const u8{
+        "\x00",
+        "from string s in 'a\x00b' select s;",
+        "from string s in 'a' select s;\x00invalid tail",
+    };
+    setup();
+    diag.clearLast();
+    front.fend_translation_unit_init(NoOp.cb);
+    defer front.fend_translation_unit_cleanup();
+    installCapture();
+    defer diag.setOnReported(null);
+
+    for (samples) |q| {
+        // Act
+        const ok = compile(q);
+
+        // Assert
+        try std.testing.expect(!ok);
+        try std.testing.expectEqual(@as(c_int, 1), front.fend_error_count);
+        try std.testing.expectEqualStrings(
+            "NUL byte in query source; use \\x00 in a byte string instead",
+            capturedMessage(),
+        );
+    }
+}
+
 test "parse error reports syntax text" {
     // Arrange
     setup();

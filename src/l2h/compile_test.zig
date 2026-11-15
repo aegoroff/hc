@@ -1131,6 +1131,23 @@ test "plain hex-looking strings compare case-sensitively" {
     try std.testing.expectEqualStrings("", got.err);
 }
 
+test "NUL source fails before executing a valid prefix in both modes" {
+    // Arrange
+    const query = "from string s in 'must not print' select s;\x00invalid tail";
+
+    for ([_]bool{ false, true }) |syntax_check| {
+        // Act
+        const got = try runQueryMode(query, syntax_check);
+
+        // Assert
+        try std.testing.expectEqualStrings("", got.out);
+        try std.testing.expectEqualStrings(
+            "NUL byte in query source; use \\x00 in a byte string instead",
+            got.err,
+        );
+    }
+}
+
 test "compile+run hex escapes hash as binary payload" {
     // Arrange
     const query = "from string s in b\"\\x00\\x01\\x02\" select s.md5;";

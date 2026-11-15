@@ -173,8 +173,15 @@ pub export fn fend_translation_unit_cleanup() void {
 
 /// Scan `text` and run yyparse. Caller must have called `fend_translation_unit_init`.
 /// Resets `fend_error_count` and lexer location. Uses `state.gpa` for the NUL copy.
+/// Rejects embedded NUL bytes before any query can execute.
 pub fn parseQuery(text: []const u8) std.mem.Allocator.Error!c_int {
     fend_error_count = 0;
+
+    if (std.mem.findScalar(u8, text, 0) != null) {
+        fend_error_count = 1;
+        _ = diag.report("NUL byte in query source; use \\x00 in a byte string instead");
+        return 1;
+    }
 
     const z = try state.gpa.dupeSentinel(u8, text, 0);
     defer state.gpa.free(z);
