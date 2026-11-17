@@ -44,6 +44,7 @@ __device__ static void prrmd128_compress(uint32_t* state, const uint8_t* block);
 
 __constant__ static unsigned char k_dict[GPU_DICT_MAX];
 __constant__ static unsigned char k_hash[HASH_LEN];
+__device__ static int g_found;
 
 __host__ void HC_GPU_FN(rmd128_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len,
                                     const unsigned char* hash, gpu_tread_ctx_t* ctx) {

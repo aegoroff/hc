@@ -20,6 +20,7 @@ __device__ static void prblake2b_compress(uint64_t* h, const uint8_t* block, uin
 
 __constant__ static unsigned char k_dict[GPU_DICT_MAX];
 __constant__ static unsigned char k_hash[HASH_LEN];
+__device__ static int g_found;
 
 __constant__ static const uint64_t k_iv[8] = {
     UINT64_C(0x6a09e667f3bcc908), UINT64_C(0xbb67ae8584caa73b),

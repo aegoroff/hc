@@ -155,6 +155,25 @@ HC_GPU_HASHES(HC_GPU_HASH_DECL)
     } while (0)
 #endif
 
+/* Each .cu defines `__device__ static int g_found`. Claim it before the copy:
+ * a plain check then memcpy lets two hits interleave bytes in result[]. */
+#ifndef GPU_PUBLISH_RESULT
+#define GPU_PUBLISH_RESULT(result, src, nbytes)                                                         \
+    do {                                                                                                \
+        if (atomicCAS(&g_found, 0, 1) == 0) {                                                           \
+            memcpy((result), (src), (size_t)(nbytes));                                                  \
+        }                                                                                                \
+    } while (0)
+#endif
+
+#ifndef GPU_RESET_FOUND
+#define GPU_RESET_FOUND()                                                                               \
+    do {                                                                                                \
+        const int _gpu_found_zero = 0;                                                                  \
+        CUDA_SAFE_CALL(cudaMemcpyToSymbol(g_found, &_gpu_found_zero, sizeof(_gpu_found_zero)));         \
+    } while (0)
+#endif
+
  /* Prefix index + 2-char expand (md5-style). min_len/max_len are passmin/passmax.
   * Caller must keep pass_len <= GPU_ATTEMPT_SIZE-3 so attempt[] / result NUL fit. */
 #ifndef KERNEL_WITHOUT_ALLOCATION
@@ -174,7 +193,7 @@ __global__ void func_name(unsigned char* result, const uint64_t start, const uin
         attempt[pass_len] = k_dict[i];                                                                  \
         if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len) {                                          \
             if (compare_func(attempt, (int)(pass_len + 1u))) {                                          \
-                memcpy(result, attempt, pass_len + 1u);                                                 \
+                GPU_PUBLISH_RESULT(result, attempt, pass_len + 1u);                                     \
                 return;                                                                                 \
             }                                                                                           \
         }                                                                                               \
@@ -182,7 +201,7 @@ __global__ void func_name(unsigned char* result, const uint64_t start, const uin
         for (uint32_t j = 0; j < dict_length; ++j) {                                                    \
             attempt[pass_len + 1u] = k_dict[j];                                                         \
             if (compare_func(attempt, (int)(pass_len + 2u))) {                                          \
-                memcpy(result, attempt, pass_len + 2u);                                                 \
+                GPU_PUBLISH_RESULT(result, attempt, pass_len + 2u);                                     \
                 return;                                                                                 \
             }                                                                                           \
         }                                                                                               \
@@ -208,7 +227,7 @@ __global__ void func_name(unsigned char* result, const uint64_t start, const uin
         attempt[pass_len] = k_dict[i];                                                                  \
         if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len) {                                          \
             if (compare_func(attempt, (int)(pass_len + 1u), hash)) {                                    \
-                memcpy(result, attempt, pass_len + 1u);                                                 \
+                GPU_PUBLISH_RESULT(result, attempt, pass_len + 1u);                                     \
                 return;                                                                                 \
             }                                                                                           \
         }                                                                                               \
@@ -216,7 +235,7 @@ __global__ void func_name(unsigned char* result, const uint64_t start, const uin
         for (uint32_t j = 0; j < dict_length; ++j) {                                                    \
             attempt[pass_len + 1u] = k_dict[j];                                                         \
             if (compare_func(attempt, (int)(pass_len + 2u), hash)) {                                    \
-                memcpy(result, attempt, pass_len + 2u);                                                 \
+                GPU_PUBLISH_RESULT(result, attempt, pass_len + 2u);                                     \
                 return;                                                                                 \
             }                                                                                           \
         }                                                                                               \
@@ -227,6 +246,7 @@ __global__ void func_name(unsigned char* result, const uint64_t start, const uin
 #ifndef GPU_LAUNCH_INDEX_KERNEL
 #define GPU_LAUNCH_INDEX_KERNEL(kernel_fn, ctx, dict_len)                                               \
     do {                                                                                                \
+        GPU_RESET_FOUND();                                                                              \
         const uint32_t threads = (uint32_t)(ctx)->max_threads_per_block_;                               \
         const uint32_t count = (ctx)->batch_count_;                                                     \
         const uint32_t blocks = (count + threads - 1u) / threads;                                        \

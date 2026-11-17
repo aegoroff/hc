@@ -188,9 +188,10 @@ __kernel void prblake2s_kernel(__global uchar* result,
     if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len) {
       if (*g_found) return;
       if (prblake2s_compare(k_hash, attempt, (int)(pass_len + 1u))) {
-        for (uint k = 0; k < pass_len + 1u; ++k) result[k] = attempt[k];
-        result[pass_len + 1u] = 0;
-        *g_found = 1;
+        if (atomic_cmpxchg(g_found, 0, 1) == 0) {
+          for (uint k = 0; k < pass_len + 1u; ++k) result[k] = attempt[k];
+          result[pass_len + 1u] = 0;
+        }
         return;
       }
     }
@@ -199,9 +200,10 @@ __kernel void prblake2s_kernel(__global uchar* result,
       attempt[pass_len + 1u] = k_dict[j];
       if (*g_found) return;
       if (prblake2s_compare(k_hash, attempt, (int)(pass_len + 2u))) {
-        for (uint k = 0; k < pass_len + 2u; ++k) result[k] = attempt[k];
-        result[pass_len + 2u] = 0;
-        *g_found = 1;
+        if (atomic_cmpxchg(g_found, 0, 1) == 0) {
+          for (uint k = 0; k < pass_len + 2u; ++k) result[k] = attempt[k];
+          result[pass_len + 2u] = 0;
+        }
         return;
       }
     }

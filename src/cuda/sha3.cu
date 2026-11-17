@@ -16,6 +16,7 @@
 
 __constant__ static unsigned char k_dict[GPU_DICT_MAX];
 __constant__ static unsigned char k_hash[MAX_HASH_LEN];
+__device__ static int g_found;
 
 __constant__ static const uint64_t k_rc[24] = {
     UINT64_C(0x0000000000000001), UINT64_C(0x0000000000008082), UINT64_C(0x800000000000808A), UINT64_C(0x8000000080008000),
@@ -215,7 +216,7 @@ __global__ static void pr##name##_kernel(unsigned char* result, const uint64_t s
         attempt[pass_len] = k_dict[i];                                                                   \
         if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len) {                                           \
             if (pr##name##_compare(attempt, (int)(pass_len + 1u))) {                                     \
-                memcpy(result, attempt, pass_len + 1u);                                                  \
+                GPU_PUBLISH_RESULT(result, attempt, pass_len + 1u);                                      \
                 return;                                                                                  \
             }                                                                                            \
         }                                                                                                \
@@ -223,7 +224,7 @@ __global__ static void pr##name##_kernel(unsigned char* result, const uint64_t s
         for (uint32_t j = 0; j < dict_length; ++j) {                                                     \
             attempt[pass_len + 1u] = k_dict[j];                                                          \
             if (pr##name##_compare(attempt, (int)(pass_len + 2u))) {                                     \
-                memcpy(result, attempt, pass_len + 2u);                                                  \
+                GPU_PUBLISH_RESULT(result, attempt, pass_len + 2u);                                      \
                 return;                                                                                  \
             }                                                                                            \
         }                                                                                                \

@@ -25,6 +25,7 @@ __host__ static void prsha256_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict
 
 __constant__ static unsigned char k_dict[GPU_DICT_MAX];
 __constant__ static unsigned char k_hash[DIGESTSIZE];
+__device__ static int g_found;
 
 __host__ void HC_GPU_FN(sha256_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));

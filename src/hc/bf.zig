@@ -374,12 +374,32 @@ fn gpuResultLen(result: []const u8) usize {
     return std.mem.findScalar(u8, result, 0) orelse result.len;
 }
 
+/// Re-hash a GPU slot with the same callback the CPU workers use. Wide mode
+/// hashes UTF-16LE (one dictionary byte per code unit), matching md4.
+fn gpuResultMatches(hash: []const u8, result: []const u8, use_wide: bool) bool {
+    std.debug.assert(result.len <= gpu.GPU_ATTEMPT_SIZE);
+    const want: *anyopaque = @ptrCast(@constCast(hash.ptr));
+    if (!use_wide) {
+        return compareAttempt(want, result.ptr, @intCast(result.len)) != 0;
+    }
+    var wide: [gpu.GPU_ATTEMPT_SIZE * 2]u8 = undefined;
+    for (result, 0..) |byte, i| {
+        wide[i * 2] = byte;
+        wide[i * 2 + 1] = 0;
+    }
+    return compareAttempt(want, &wide, @intCast(result.len * 2)) != 0;
+}
+
 fn gpuResultPassword(gpa: std.mem.Allocator, result: []const u8, use_wide: bool) ![]u8 {
     if (!use_wide) return gpa.dupe(u8, result);
     const wide = try gpa.alloc(u16, result.len);
     defer gpa.free(wide);
     for (wide, result) |*unit, byte| unit.* = byte;
     return std.unicode.utf16LeToUtf8Alloc(gpa, wide);
+}
+
+fn needsCpuFallback(passmax: u32, gpu_max_len: u32, gpu_rejected: bool) bool {
+    return passmax <= gpu_max_len or gpu_rejected;
 }
 
 fn runBruteForce(
@@ -484,6 +504,7 @@ fn runBruteForce(
     }
 
     var found_pass: ?[]u8 = null;
+    var gpu_rejected = false;
 
     if (has_gpu and gpu_context != null) {
         var count_props: c.device_props_t = std.mem.zeroes(c.device_props_t);
@@ -537,8 +558,14 @@ fn runBruteForce(
                     // length GPU_ATTEMPT_SIZE fills the slot. Never use mem.len.
                     const len = gpuResultLen(gctx.result_[0..gpu.GPU_ATTEMPT_SIZE]);
                     if (len > 0) {
-                        found_pass = try gpuResultPassword(arena, gctx.result_[0..len], use_wide);
-                        gpu_found = true;
+                        const raw = gctx.result_[0..len];
+                        // A non-zero slot is accepted only when it hashes to the target.
+                        if (gpuResultMatches(hash_bytes, raw, use_wide)) {
+                            found_pass = try gpuResultPassword(arena, raw, use_wide);
+                            gpu_found = true;
+                        } else {
+                            gpu_rejected = true;
+                        }
                     }
                 }
             }
@@ -547,6 +574,11 @@ fn runBruteForce(
             // Beyond the GPU slot size their range was never capped (see #10).
             if (gpu_found) {
                 c.bf_core_set_found(true);
+            } else if (gpu_rejected and !g_stop_requested.load(.acquire)) {
+                // The worker already raised the flag for this slot. Drop it when
+                // the bytes do not hash to the target, so a still-running CPU
+                // search is not stopped on a rejected hit.
+                c.bf_core_set_found(false);
             }
         }
     }
@@ -571,7 +603,7 @@ fn runBruteForce(
         }
     }
 
-    if (found_pass == null and has_gpu and passmax <= gpu_max_len and !g_stop_requested.load(.acquire)) {
+    if (found_pass == null and has_gpu and needsCpuFallback(passmax, gpu_max_len, gpu_rejected) and !g_stop_requested.load(.acquire)) {
         const attempts_before_fallback = c.bf_core_get_attempts();
         const fallback_pass = try runBruteForce(arena, writer, dict, digest, passmin, passmax, num_threads_in, use_wide, false, null);
         c.bf_core_add_attempts(attempts_before_fallback);
@@ -824,6 +856,57 @@ test "gpuResultLen stops at first NUL" {
 
     // Assert
     try std.testing.expectEqual(@as(usize, 4), len);
+}
+
+test "rejected GPU hit beyond its password limit requires CPU fallback" {
+    // Arrange
+    const passmax = gpuMaxPasswordLen() + 1;
+
+    // Act
+    const fallback = needsCpuFallback(passmax, gpuMaxPasswordLen(), true);
+
+    // Assert
+    try std.testing.expect(fallback);
+}
+
+test "gpuResultMatches accepts only a password that hashes to the target" {
+    // Arrange
+    const crc = hashes.getHash("crc32").?;
+    var digest: [4]u8 align(8) = undefined;
+    hashes.compute(crc, "abcd", &digest);
+    g_digest = crc.digest;
+    g_hash_len = crc.hash_length;
+
+    // Act
+    const hit = gpuResultMatches(&digest, "abcd", false);
+    const torn = gpuResultMatches(&digest, "abXd", false);
+
+    // Assert
+    try std.testing.expect(hit);
+    try std.testing.expect(!torn);
+}
+
+test "gpuResultMatches wide mode hashes UTF-16LE" {
+    // Arrange
+    const md4 = hashes.getHash("md4").?;
+    const pass = "abcd";
+    var wide: [8]u8 = undefined;
+    for (pass, 0..) |byte, i| {
+        wide[i * 2] = byte;
+        wide[i * 2 + 1] = 0;
+    }
+    var digest: [16]u8 align(8) = undefined;
+    hashes.compute(md4, &wide, &digest);
+    g_digest = md4.digest;
+    g_hash_len = md4.hash_length;
+
+    // Act
+    const hit = gpuResultMatches(&digest, pass, true);
+    const narrow = gpuResultMatches(&digest, pass, false);
+
+    // Assert
+    try std.testing.expect(hit);
+    try std.testing.expect(!narrow);
 }
 
 test "gpuResultLen empty when first byte is NUL" {
