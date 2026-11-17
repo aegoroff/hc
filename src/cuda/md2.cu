@@ -17,6 +17,7 @@
 
 __constant__ static unsigned char k_dict[GPU_DICT_MAX];
 __constant__ static unsigned char k_hash[DIGESTSIZE];
+__device__ static int g_found;
 
 /* MD2 PI-substitution table (RFC 1319). */
 __constant__ static const uint8_t k_s_md2[256] = {
@@ -162,7 +163,7 @@ __global__ void prmd2_kernel(unsigned char* result, const uint64_t start, const 
         if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len &&
             pass_len + 1u < DIGESTSIZE) {
             if (prmd2_hash_eq(attempt, (int)(pass_len + 1u), s_sbox)) {
-                memcpy(result, attempt, pass_len + 1u);
+                GPU_PUBLISH_RESULT(result, attempt, pass_len + 1u);
                 return;
             }
         }
@@ -171,7 +172,7 @@ __global__ void prmd2_kernel(unsigned char* result, const uint64_t start, const 
         for (uint32_t j = 0; j < dict_length; ++j) {
             attempt[pass_len + 1u] = k_dict[j];
             if (prmd2_hash_eq(attempt, (int)(pass_len + 2u), s_sbox)) {
-                memcpy(result, attempt, pass_len + 2u);
+                GPU_PUBLISH_RESULT(result, attempt, pass_len + 2u);
                 return;
             }
         }

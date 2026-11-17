@@ -108,9 +108,10 @@ __kernel void prmd4_kernel(__global uchar* result,
         cmp_len = (int)cur_len;
       }
       if (prmd4_compare(k_hash, cmp_buf, cmp_len)) {
-        for (uint k = 0; k < cur_len; ++k) result[k] = attempt[k];
-        result[cur_len] = 0;
-        *g_found = 1;
+        if (atomic_cmpxchg(g_found, 0, 1) == 0) {
+          for (uint k = 0; k < cur_len; ++k) result[k] = attempt[k];
+          result[cur_len] = 0;
+        }
         return;
       }
     }
@@ -130,9 +131,10 @@ __kernel void prmd4_kernel(__global uchar* result,
         cmp_len = (int)cur_len;
       }
       if (prmd4_compare(k_hash, cmp_buf, cmp_len)) {
-        for (uint k = 0; k < cur_len; ++k) result[k] = attempt[k];
-        result[cur_len] = 0;
-        *g_found = 1;
+        if (atomic_cmpxchg(g_found, 0, 1) == 0) {
+          for (uint k = 0; k < cur_len; ++k) result[k] = attempt[k];
+          result[cur_len] = 0;
+        }
         return;
       }
     }

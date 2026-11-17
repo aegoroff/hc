@@ -635,8 +635,7 @@ __global__ void prtiger_kernel(unsigned char* result, const uint64_t start, cons
         if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len) {
             if (g_found) return;
             if (prtiger_match(attempt, pass_len + 1u, 0x01, sT1, sT2, sT3, sT4)) {
-                memcpy(result, attempt, pass_len + 1u);
-                atomicExch(&g_found, 1);
+                GPU_PUBLISH_RESULT(result, attempt, pass_len + 1u);
                 return;
             }
         }
@@ -645,8 +644,7 @@ __global__ void prtiger_kernel(unsigned char* result, const uint64_t start, cons
             attempt[pass_len + 1u] = k_dict[j];
             if (g_found) return;
             if (prtiger_match(attempt, pass_len + 2u, 0x01, sT1, sT2, sT3, sT4)) {
-                memcpy(result, attempt, pass_len + 2u);
-                atomicExch(&g_found, 1);
+                GPU_PUBLISH_RESULT(result, attempt, pass_len + 2u);
                 return;
             }
         }
@@ -671,8 +669,7 @@ __global__ void prtiger2_kernel(unsigned char* result, const uint64_t start, con
         if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u <= max_len) {
             if (g_found) return;
             if (prtiger_match(attempt, pass_len + 1u, 0x80, sT1, sT2, sT3, sT4)) {
-                memcpy(result, attempt, pass_len + 1u);
-                atomicExch(&g_found, 1);
+                GPU_PUBLISH_RESULT(result, attempt, pass_len + 1u);
                 return;
             }
         }
@@ -681,8 +678,7 @@ __global__ void prtiger2_kernel(unsigned char* result, const uint64_t start, con
             attempt[pass_len + 1u] = k_dict[j];
             if (g_found) return;
             if (prtiger_match(attempt, pass_len + 2u, 0x80, sT1, sT2, sT3, sT4)) {
-                memcpy(result, attempt, pass_len + 2u);
-                atomicExch(&g_found, 1);
+                GPU_PUBLISH_RESULT(result, attempt, pass_len + 2u);
                 return;
             }
         }

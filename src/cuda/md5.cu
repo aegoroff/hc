@@ -100,8 +100,7 @@ __global__ void prmd5_kernel(unsigned char* result, const uint64_t start, const 
                 return;
             }
             if (prmd5_compare(attempt, (int)(pass_len + 1u))) {
-                memcpy(result, attempt, pass_len + 1u);
-                atomicExch(&g_found, 1);
+                GPU_PUBLISH_RESULT(result, attempt, pass_len + 1u);
                 return;
             }
         }
@@ -115,8 +114,7 @@ __global__ void prmd5_kernel(unsigned char* result, const uint64_t start, const 
                 return;
             }
             if (prmd5_compare(attempt, (int)(pass_len + 2u))) {
-                memcpy(result, attempt, pass_len + 2u);
-                atomicExch(&g_found, 1);
+                GPU_PUBLISH_RESULT(result, attempt, pass_len + 2u);
                 return;
             }
         }

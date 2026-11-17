@@ -171,8 +171,7 @@ __global__ void prmd4_kernel(unsigned char* result, const uint64_t start, const 
                 attempt_len = cur_len;
             }
             if (prmd4_compare(attempt_buf, (int)attempt_len)) {
-                memcpy(result, attempt, cur_len);
-                atomicExch(&g_found, 1);
+                GPU_PUBLISH_RESULT(result, attempt, cur_len);
                 return;
             }
         }
@@ -197,8 +196,7 @@ __global__ void prmd4_kernel(unsigned char* result, const uint64_t start, const 
                 attempt_len = cur_len;
             }
             if (prmd4_compare(attempt_buf, (int)attempt_len)) {
-                memcpy(result, attempt, cur_len);
-                atomicExch(&g_found, 1);
+                GPU_PUBLISH_RESULT(result, attempt, cur_len);
                 return;
             }
         }
@@ -207,6 +205,7 @@ __global__ void prmd4_kernel(unsigned char* result, const uint64_t start, const 
 
 
 __host__ void prmd4_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+    GPU_RESET_FOUND();
     const uint32_t threads = (uint32_t)ctx->max_threads_per_block_;
     const uint32_t count = ctx->batch_count_;
     const uint32_t blocks = (count + threads - 1u) / threads;

@@ -27,6 +27,7 @@ __device__ static void prblake3_compress(uint32_t* cv, const uint8_t* block, uin
 
 __constant__ static unsigned char k_dict[GPU_DICT_MAX];
 __constant__ static unsigned char k_hash[HASH_LEN];
+__device__ static int g_found;
 
 __constant__ static const uint32_t k_iv[8] = {
     UINT32_C(0x6A09E667), UINT32_C(0xBB67AE85), UINT32_C(0x3C6EF372), UINT32_C(0xA54FF53A),
