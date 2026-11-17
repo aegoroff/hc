@@ -125,7 +125,9 @@ pub fn dirExists(io: std.Io, path: []const u8) bool {
 
 /// Regular files under `root_path`. `max_depth` 0 is flat; `null` is unlimited;
 /// `n` enters directories with `depth() <= n` (same as l2h `tree(n)`).
-/// Symlinks are skipped (no-follow). Caller owns slices from `next`.
+/// Symlinks are skipped (no-follow). Caller owns `file.path` / `failed.path`
+/// from `next`; `file.dir` / `file.name` / `file.rel` borrow the walk and are
+/// valid until the next `next` or `deinit`.
 /// A flat iterate I/O error yields one `.failed` then ends the walk (sticky
 /// retry would hang `dirRun` / l2h `skipErrors`). A `stat` of one `DT_UNKNOWN`
 /// entry yields `.failed` and the walk continues; `FileNotFound` is skipped.
@@ -196,7 +198,12 @@ pub const FileWalk = struct {
                         } },
                     };
                     if (kind != .file) continue;
-                    return .{ .file = try std.Io.Dir.path.join(gpa, &.{ self.root_path, entry.name }) };
+                    return .{ .file = .{
+                        .path = try std.Io.Dir.path.join(gpa, &.{ self.root_path, entry.name }),
+                        .dir = self.root,
+                        .name = entry.name,
+                        .rel = entry.name,
+                    } };
                 }
             },
             .tree => |*walker| {
@@ -226,7 +233,12 @@ pub const FileWalk = struct {
                         continue;
                     }
                     if (kind != .file) continue;
-                    return .{ .file = try std.Io.Dir.path.join(gpa, &.{ self.root_path, entry.path }) };
+                    return .{ .file = .{
+                        .path = try std.Io.Dir.path.join(gpa, &.{ self.root_path, entry.path }),
+                        .dir = entry.dir,
+                        .name = entry.basename,
+                        .rel = entry.path,
+                    } };
                 }
             },
         }
@@ -315,11 +327,15 @@ fn hashTree(
                 defer gpa.free(fail.path);
                 try reportFindError(ctx, report, fail.path, fail.err);
             },
-            .file => |full| {
-                defer gpa.free(full);
-                if (!nameMatches(std.Io.Dir.path.basename(full), ctx.include_pattern, ctx.exclude_pattern)) continue;
-                if (!try report.protectInput(full, true)) continue;
-                try file.hashIntoReport(report, full, &opts, format, hash_def);
+            .file => |wf| {
+                defer gpa.free(wf.path);
+                if (!nameMatches(wf.name, ctx.include_pattern, ctx.exclude_pattern)) continue;
+                if (!try report.protectInput(wf.dir, wf.name, wf.path, true)) continue;
+                try file.hashIntoReport(report, .{
+                    .dir = wf.dir,
+                    .name = wf.name,
+                    .path = wf.path,
+                }, &opts, format, hash_def);
             },
         }
     }
@@ -418,9 +434,10 @@ test "FileWalk flat lists only regular files" {
                 std.testing.allocator.free(fail.path);
                 return error.TestUnexpectedResult;
             },
-            .file => |p| {
-                defer std.testing.allocator.free(p);
-                try std.testing.expectEqualStrings("a.txt", std.Io.Dir.path.basename(p));
+            .file => |wf| {
+                defer std.testing.allocator.free(wf.path);
+                try std.testing.expectEqualStrings("a.txt", wf.name);
+                try std.testing.expectEqualStrings("a.txt", wf.rel);
                 n += 1;
             },
         }
@@ -461,8 +478,8 @@ test "FileWalk unlimited tree includes nested files" {
                 std.testing.allocator.free(fail.path);
                 return error.TestUnexpectedResult;
             },
-            .file => |p| {
-                defer std.testing.allocator.free(p);
+            .file => |wf| {
+                defer std.testing.allocator.free(wf.path);
                 n += 1;
             },
         }
@@ -513,9 +530,9 @@ test "FileWalk tree early deinit closes nested directory fds" {
                 std.testing.allocator.free(fail.path);
                 return error.TestUnexpectedResult;
             },
-            .file => |p| {
-                defer std.testing.allocator.free(p);
-                if (std.mem.endsWith(u8, p, "nested.txt")) {
+            .file => |wf| {
+                defer std.testing.allocator.free(wf.path);
+                if (std.mem.endsWith(u8, wf.path, "nested.txt")) {
                     saw_nested = true;
                     break;
                 }
@@ -545,6 +562,111 @@ test "FileWalk missing directory is OpenFailed" {
         error.OpenFailed,
         FileWalk.init(std.testing.allocator, io, path, 0),
     );
+}
+
+/// `depth` nested 16-byte directories under `base`, with `payload.txt`
+/// ("hello") at the bottom. 253 levels put the full path past PATH_MAX while
+/// every component stays openable through a parent handle. POSIX only.
+fn makeDeepTree(io: std.Io, base: []const u8, depth: usize) !void {
+    const perms = std.Io.Dir.Permissions.default_dir;
+    const comp = "dddddddddddddddd";
+    try std.Io.Dir.cwd().createDir(io, base, perms);
+    var cur = try std.Io.Dir.cwd().openDir(io, base, .{});
+    defer cur.close(io);
+    for (0..depth) |_| {
+        try cur.createDir(io, comp, perms);
+        const next = try cur.openDir(io, comp, .{});
+        cur.close(io);
+        cur = next;
+    }
+    var f = try cur.createFile(io, "payload.txt", .{});
+    defer f.close(io);
+    try f.writeStreamingAll(io, "hello");
+}
+
+test "FileWalk reaches files whose full path exceeds PATH_MAX" {
+    if (comptime @import("builtin").os.tag == .windows) return error.SkipZigTest;
+
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const gpa = std.testing.allocator;
+    const base = "modes_filewalk_longpath_probe";
+    std.Io.Dir.cwd().deleteTree(io, base) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+    try makeDeepTree(io, base, 253);
+
+    var walk = try FileWalk.init(gpa, io, base, null);
+    defer walk.deinit();
+
+    // Act
+    var found = false;
+    while (try walk.next(gpa)) |step| {
+        switch (step) {
+            .failed => |fail| {
+                gpa.free(fail.path);
+                return error.TestUnexpectedResult;
+            },
+            .file => |wf| {
+                defer gpa.free(wf.path);
+                try std.testing.expect(wf.path.len > std.Io.Dir.max_path_bytes);
+                try std.testing.expectEqualStrings("payload.txt", wf.name);
+                try std.testing.expectEqual(wf.path.len - base.len - 1, wf.rel.len);
+                // The display path is too long to open from cwd...
+                try std.testing.expectError(error.NameTooLong, std.Io.Dir.cwd().openFile(io, wf.path, .{}));
+                // ...but the borrowed parent handle reaches the file.
+                var f = try wf.dir.openFile(io, wf.name, .{});
+                defer f.close(io);
+                var buf: [16]u8 = undefined;
+                const n = try f.readStreaming(io, &.{&buf});
+                try std.testing.expectEqualStrings("hello", buf[0..n]);
+                found = true;
+            },
+        }
+    }
+
+    // Assert
+    try std.testing.expect(found);
+}
+
+test "dirRun hashes a tree deeper than PATH_MAX and saves the report" {
+    if (comptime @import("builtin").os.tag == .windows) return error.SkipZigTest;
+
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const gpa = std.testing.allocator;
+    const base = "modes_dir_longpath_probe";
+    const save = "modes_dir_longpath_report.txt";
+    std.Io.Dir.cwd().deleteTree(io, base) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+    defer std.Io.Dir.cwd().deleteFile(io, save) catch {};
+    try makeDeepTree(io, base, 253);
+
+    var digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("tiger").?, "hello", digest[0..24]);
+    var hex_buf: [64]u8 = undefined;
+    const hex = t.hashToHex(digest[0..24], false, &hex_buf);
+
+    var out = std.Io.Writer.Allocating.init(gpa);
+    defer out.deinit();
+    const env: t.RunEnv = .{ .io = io, .allocator = gpa, .out = &out.writer };
+    var dctx: t.DirCtx = .{
+        .opts = .{ .save_result_path = save },
+        .dir_path = base,
+        .recursively = true,
+    };
+
+    // Act
+    try dirRun(&dctx, env, hashes.getHash("tiger").?);
+
+    // Assert
+    const got = out.written();
+    try std.testing.expect(std.mem.find(u8, got, "payload.txt") != null);
+    try std.testing.expect(std.mem.find(u8, got, hex) != null);
+    try std.testing.expect(std.mem.find(u8, got, "open error") == null);
+    try std.testing.expect(std.mem.find(u8, got, "Refusing") == null);
+    const saved = try std.Io.Dir.cwd().readFileAlloc(io, save, gpa, .limited(1 << 20));
+    defer gpa.free(saved);
+    try std.testing.expect(std.mem.find(u8, saved, hex) != null);
 }
 
 test "nameMatches glob include/exclude" {

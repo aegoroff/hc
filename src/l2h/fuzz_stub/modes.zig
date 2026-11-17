@@ -23,6 +23,7 @@ fn isMissing(path: []const u8) bool {
 pub const file = struct {
     pub fn createFileDigest(
         def: *const hashes.HashDefinition,
+        _: std.Io.Dir,
         path: []const u8,
         _: types.FileWindow,
         _: std.Io,
@@ -31,12 +32,12 @@ pub const file = struct {
         return .{ .len = def.hash_length, .file_size = 0 };
     }
 
-    pub fn pathKind(_: std.Io, path: []const u8) types.PathError!std.Io.File.Kind {
+    pub fn pathKind(_: std.Io, _: std.Io.Dir, path: []const u8) types.PathError!std.Io.File.Kind {
         if (isMissing(path)) return error.OpenFailed;
         return .file;
     }
 
-    pub fn fileSize(_: std.Io, path: []const u8) types.PathError!u64 {
+    pub fn fileSize(_: std.Io, _: std.Io.Dir, path: []const u8) types.PathError!u64 {
         if (isMissing(path)) return error.OpenFailed;
         return 0;
     }
@@ -63,6 +64,10 @@ pub const dir = struct {
     }
 
     pub const FileWalk = struct {
+        /// Never read: the stub yields no files, so DirFileIter never
+        /// registers a walk root.
+        root: std.Io.Dir = undefined,
+
         pub fn init(
             _: std.mem.Allocator,
             _: std.Io,

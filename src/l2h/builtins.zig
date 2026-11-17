@@ -107,7 +107,8 @@ fn hashHexOfBytes(ctx: Ctx, algo: []const u8, bytes: []const u8) Error![]const u
 
 fn hashHexOfFile(ctx: Ctx, algo: []const u8, file: value.FileVal) Error![]const u8 {
     const def = hashes.getHash(algo) orelse return error.UnknownHash;
-    const digest = modes.file.createFileDigest(def, file.path, .{
+    const ref = file.openRef();
+    const digest = modes.file.createFileDigest(def, ref.dir, ref.name, .{
         .offset = file.offset,
         .limit = file.limit,
     }, ctx.io) catch |err| switch (err) {
@@ -123,13 +124,15 @@ fn hashHexOfFile(ctx: Ctx, algo: []const u8, file: value.FileVal) Error![]const 
     return try ctx.allocator.dupe(u8, hex);
 }
 
-fn fileSize(ctx: Ctx, path: []const u8) Error!i64 {
-    const size = modes.file.fileSize(ctx.io, path) catch return diag.ioFail(path);
+fn fileSize(ctx: Ctx, file: value.FileVal) Error!i64 {
+    const ref = file.openRef();
+    const size = modes.file.fileSize(ctx.io, ref.dir, ref.name) catch return diag.ioFail(file.path);
     return std.math.cast(i64, size) orelse return error.Overflow;
 }
 
-fn fileIsReadable(ctx: Ctx, path: []const u8) bool {
-    const kind = modes.file.pathKind(ctx.io, path) catch return false;
+fn fileIsReadable(ctx: Ctx, file: value.FileVal) bool {
+    const ref = file.openRef();
+    const kind = modes.file.pathKind(ctx.io, ref.dir, ref.name) catch return false;
     return kind == .file;
 }
 
@@ -186,7 +189,7 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?Access, sp: exp
             else => unreachable,
         },
         .size => switch (recv) {
-            .file => |f| .{ .int = fileSize(ctx, f.path) catch |err| return failSpan(sp, err) },
+            .file => |f| .{ .int = fileSize(ctx, f) catch |err| return failSpan(sp, err) },
             .string => |s| .{ .int = std.math.cast(i64, s.bytes.len) orelse return failSpan(sp, error.Overflow) },
             else => unreachable,
         },
@@ -199,7 +202,7 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?Access, sp: exp
             else => unreachable,
         },
         .readable => switch (recv) {
-            .file => |f| .{ .bool = fileIsReadable(ctx, f.path) },
+            .file => |f| .{ .bool = fileIsReadable(ctx, f) },
             else => unreachable,
         },
         .hash_dict => switch (recv) {

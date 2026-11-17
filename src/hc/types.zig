@@ -57,11 +57,31 @@ pub const PathError = error{
     ReadFailed,
 };
 
+/// A file located by an open directory handle: open/stat go through
+/// `dir` + `name`, `path` is display-only. Keeps files reachable when the
+/// full path exceeds PATH_MAX but `name` is short (a walk basename).
+pub const FileRef = struct {
+    dir: std.Io.Dir,
+    name: []const u8,
+    path: []const u8,
+};
+
+/// One regular file found by a walk. `path` is the full display path, owned
+/// by the allocator passed to `next`. `dir`, `name` and `rel` borrow the
+/// walk: valid until the next `next` or `deinit`. `name` is relative to the
+/// containing directory `dir`; `rel` is relative to the walk root.
+pub const WalkFile = struct {
+    path: []u8,
+    dir: std.Io.Dir,
+    name: []const u8,
+    rel: []const u8,
+};
+
 /// One step of a regular-file walk. `failed.path` is a hint (root on iterate
 /// errors, the entry path on `stat` errors, subdirectory path on `enter`
 /// errors); `failed.err` is the I/O error.
 pub const WalkStep = union(enum) {
-    file: []u8,
+    file: WalkFile,
     failed: struct { path: []u8, err: anyerror },
 };
 

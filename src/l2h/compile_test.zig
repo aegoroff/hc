@@ -1651,6 +1651,82 @@ test "compile+run dir.tree() walks nested files" {
     try std.testing.expectEqualStrings("", deep.err);
 }
 
+/// 253 nested 16-byte directories under `root`, with a.txt ("hello") and
+/// b.txt ("world") at the bottom: full paths exceed PATH_MAX while every
+/// component stays reachable through a parent handle. POSIX only.
+fn makeDeepTmpTree(root: std.Io.Dir, io: std.Io) !void {
+    const comp = "dddddddddddddddd";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    try root.createDir(io, comp, perms);
+    var cur = try root.openDir(io, comp, .{});
+    defer cur.close(io);
+    for (1..253) |_| {
+        try cur.createDir(io, comp, perms);
+        const next = try cur.openDir(io, comp, .{});
+        cur.close(io);
+        cur = next;
+    }
+    try cur.writeFile(io, .{ .sub_path = "a.txt", .data = "hello" });
+    try cur.writeFile(io, .{ .sub_path = "b.txt", .data = "world" });
+}
+
+test "compile+run dir.tree() hashes files beyond PATH_MAX" {
+    if (comptime builtin.target.os.tag == .windows) return error.SkipZigTest;
+
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try makeDeepTmpTree(tmp.dir, state.io);
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+    const md5_q = try std.testing.allocator.print(
+        "from dir d in '{s}' from file f in d.tree() orderby f.name select f.md5;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(md5_q);
+    const size_q = try std.testing.allocator.print(
+        "from dir d in '{s}' from file f in d.tree() orderby f.name select f.size;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(size_q);
+
+    // Act
+    const md5 = try runQuery(md5_q);
+    const size = try runQuery(size_q);
+
+    // Assert
+    try std.testing.expectEqualStrings("5d41402abc4b2a76b9719d911017c592\n7d793037a0760186574b0282f2f435e7\n", md5.out);
+    try std.testing.expectEqualStrings("", md5.err);
+    try std.testing.expectEqualStrings("5\n5\n", size.out);
+    try std.testing.expectEqualStrings("", size.err);
+}
+
+test "compile+run walk files stay hashable after script into binding" {
+    if (comptime builtin.target.os.tag == .windows) return error.SkipZigTest;
+
+    // Arrange: the first query's walk and arena are gone before the second
+    // query hashes the saved files; the walk-root handle must outlive them.
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try makeDeepTmpTree(tmp.dir, state.io);
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+    const q = try std.testing.allocator.print(
+        \\from dir d in '{s}' from file f in d.tree() select f into saved;
+        \\from file g in saved orderby g.name select g.md5;
+    ,
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(q);
+
+    // Act
+    const got = try runQuery(q);
+
+    // Assert
+    try std.testing.expectEqualStrings("5d41402abc4b2a76b9719d911017c592\n7d793037a0760186574b0282f2f435e7\n", got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
 test "compile+run dir.tree() does not mutate original dir" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
