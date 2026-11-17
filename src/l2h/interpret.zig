@@ -175,7 +175,7 @@ fn openAs(ctx: Ctx, kind: plan.SourceKind, path_or_payload: []const u8) Error!Va
         .hash => return Value.hashDigest(path_or_payload),
         .file => {
             // §3.3: regular file only — openFile succeeds on directories on Linux.
-            const entry_kind = modes.file.pathKind(ctx.io, path_or_payload) catch return diag.ioFail(path_or_payload);
+            const entry_kind = modes.file.pathKind(ctx.io, std.Io.Dir.cwd(), path_or_payload) catch return diag.ioFail(path_or_payload);
             if (entry_kind != .file) return diag.ioFail(path_or_payload);
             return .{ .file = .{ .path = path_or_payload } };
         },
@@ -232,8 +232,8 @@ fn collectDirFiles(ctx: Ctx, dir: value.DirVal) Error![]Value {
     defer iter.deinit();
     var list: std.ArrayList(Value) = .empty;
     errdefer list.deinit(ctx.allocator);
-    while (try iter.next(ctx.allocator)) |full| {
-        try list.append(ctx.allocator, .{ .file = .{ .path = full } });
+    while (try iter.next(ctx.allocator)) |file_val| {
+        try list.append(ctx.allocator, .{ .file = file_val });
     }
     return try list.toOwnedSlice(ctx.allocator);
 }
@@ -383,14 +383,14 @@ const FromOp = struct {
                     const iter = &self.dir_iter.?;
                     const ralloc = resetArena(&self.row_arena.?);
                     pc.row_alloc = ralloc;
-                    const path = (try iter.next(ralloc)) orelse {
+                    const file_val = (try iter.next(ralloc)) orelse {
                         iter.deinit();
                         self.dir_iter = null;
                         self.phase = .need_outer;
                         continue;
                     };
                     self.row = try self.stable_outer.clone(ralloc);
-                    try self.row.put(ralloc, self.from.range, .{ .file = .{ .path = path } });
+                    try self.row.put(ralloc, self.from.range, .{ .file = file_val });
                     return &self.row;
                 },
                 .in_seq => {
@@ -1620,6 +1620,8 @@ test "join Dir rematerialize reclaims listings via inners arena reset" {
     // is testing.allocator so a bypass shows up as a leak.
     // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
+    state.gpa = std.testing.allocator;
+    defer state.walk_roots.deinit(io, std.testing.allocator);
     const base = "l2h_join_dir_remat_probe";
     const perms = std.Io.Dir.Permissions.default_dir;
     std.Io.Dir.cwd().deleteTree(io, base) catch {};
@@ -1787,6 +1789,8 @@ test "nested from and join over a dir walk keep per-row memory bounded" {
     // Per-row state must not pile up across outer rows or join candidates.
     // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
+    state.gpa = std.testing.allocator;
+    defer state.walk_roots.deinit(io, std.testing.allocator);
     const few = "l2h_per_row_few_probe";
     const many = "l2h_per_row_many_probe";
     defer std.Io.Dir.cwd().deleteTree(io, few) catch {};
@@ -1906,6 +1910,8 @@ test "large saved sequence stays shared across orderby and group materialization
     // Arrange
     const file_count: usize = 128;
     const io = std.Io.Threaded.global_single_threaded.io();
+    state.gpa = std.testing.allocator;
+    defer state.walk_roots.deinit(io, std.testing.allocator);
     const base = "l2h_saved_mat_probe";
     defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
     try makeProbeFiles(io, base, file_count);
@@ -1950,6 +1956,8 @@ test "rebinding one script name keeps peak memory bounded" {
     const file_count: usize = 32;
     const rewrites: usize = 8;
     const io = std.Io.Threaded.global_single_threaded.io();
+    state.gpa = std.testing.allocator;
+    defer state.walk_roots.deinit(io, std.testing.allocator);
     const base = "l2h_rebind_peak_probe";
     defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
     try makeProbeFiles(io, base, file_count);

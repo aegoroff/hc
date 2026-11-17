@@ -70,33 +70,81 @@ pub const FileWindow = t.FileWindow;
 pub const FileDigest = t.FileDigest;
 pub const FileDigestError = t.FileDigestError;
 
+/// POSIX fallback for `error.NameTooLong`: opens `sub_path` relative to
+/// `dir` one '/'-component at a time, so every openat path argument stays
+/// under PATH_MAX even when the whole path does not. Intermediate components
+/// open as directories; the last inherits `final_flags`.
+fn openLongRel(dir: std.Io.Dir, sub_path: []const u8, final_flags: std.posix.O) std.posix.OpenError!std.Io.File {
+    var cur: std.posix.fd_t = if (sub_path.len > 0 and sub_path[0] == '/') std.posix.AT.FDCWD else dir.handle;
+    var opened: ?std.posix.fd_t = null;
+    errdefer if (opened) |fd| {
+        _ = std.posix.system.close(fd);
+    };
+    var rest = sub_path;
+    while (true) {
+        const sep = std.mem.findScalar(u8, rest, '/');
+        const comp = if (sep) |i| rest[0..i] else rest;
+        const tail = if (sep) |i| rest[i + 1 ..] else "";
+        if (comp.len > 0) {
+            var flags = if (tail.len == 0) final_flags else std.posix.O{ .ACCMODE = .RDONLY, .DIRECTORY = true, .CLOEXEC = true };
+            // A trailing slash means the last component must be a directory,
+            // exactly as in a single open() of the whole path.
+            if (tail.len == 0 and sub_path[sub_path.len - 1] == '/') flags.DIRECTORY = true;
+            const fd = try std.posix.openat(cur, comp, flags, 0);
+            if (opened) |old| {
+                _ = std.posix.system.close(old);
+            }
+            opened = fd;
+            cur = fd;
+        }
+        if (tail.len == 0) break;
+        rest = tail;
+    }
+    const fd = opened orelse return error.FileNotFound;
+    opened = null;
+    return .{ .handle = fd, .flags = .{ .nonblocking = final_flags.NONBLOCK } };
+}
+
+/// Blocking open for hashing reads, with the long-path fallback.
+fn openForRead(io: std.Io, dir: std.Io.Dir, sub_path: []const u8) error{OpenFailed}!std.Io.File {
+    if (std.mem.findScalar(u8, sub_path, 0) != null) return error.OpenFailed;
+    if (comptime builtin.target.os.tag == .windows)
+        return dir.openFile(io, sub_path, .{}) catch return error.OpenFailed;
+    return dir.openFile(io, sub_path, .{}) catch |err| switch (err) {
+        error.NameTooLong => openLongRel(dir, sub_path, .{ .CLOEXEC = true }) catch return error.OpenFailed,
+        else => return error.OpenFailed,
+    };
+}
+
 /// Probe open for kind/size checks. O_NONBLOCK keeps open() of a FIFO from
 /// blocking until a writer appears, so the caller can see its real kind and
 /// reject it. Hashing reads (`createFileDigest`) intentionally keep the
 /// regular blocking open.
-fn openProbe(io: std.Io, path: []const u8) t.PathError!std.Io.File {
-    if (std.mem.findScalar(u8, path, 0) != null) return error.OpenFailed;
-    if (builtin.target.os.tag == .windows)
-        return std.Io.Dir.cwd().openFile(io, path, .{}) catch return error.OpenFailed;
-    const fd = std.posix.openat(std.posix.AT.FDCWD, path, .{
-        .NONBLOCK = true,
-        .CLOEXEC = true,
-    }, 0) catch return error.OpenFailed;
+fn openProbe(io: std.Io, dir: std.Io.Dir, sub_path: []const u8) t.PathError!std.Io.File {
+    if (std.mem.findScalar(u8, sub_path, 0) != null) return error.OpenFailed;
+    if (comptime builtin.target.os.tag == .windows)
+        return dir.openFile(io, sub_path, .{}) catch return error.OpenFailed;
+    const flags: std.posix.O = .{ .NONBLOCK = true, .CLOEXEC = true };
+    const fd = std.posix.openat(dir.handle, sub_path, flags, 0) catch |err| switch (err) {
+        error.NameTooLong => return openLongRel(dir, sub_path, flags) catch return error.OpenFailed,
+        else => return error.OpenFailed,
+    };
     return .{ .handle = fd, .flags = .{ .nonblocking = true } };
 }
 
-/// Kind of the entry at `path` (following symlinks).
-pub fn pathKind(io: std.Io, path: []const u8) t.PathError!std.Io.File.Kind {
-    var file = try openProbe(io, path);
+/// Kind of the entry at `dir` + `sub_path` (following symlinks).
+pub fn pathKind(io: std.Io, dir: std.Io.Dir, sub_path: []const u8) t.PathError!std.Io.File.Kind {
+    var file = try openProbe(io, dir, sub_path);
     defer file.close(io);
     const st = file.stat(io) catch return error.StatFailed;
     return st.kind;
 }
 
-/// Size of the file at `path`. When stat reports 0 (procfs, pipes) the file
-/// is read to EOF and the bytes counted, like `createFileDigest` does.
-pub fn fileSize(io: std.Io, path: []const u8) t.PathError!u64 {
-    var file = try openProbe(io, path);
+/// Size of the file at `dir` + `sub_path`. When stat reports 0 (procfs,
+/// pipes) the file is read to EOF and the bytes counted, like
+/// `createFileDigest` does.
+pub fn fileSize(io: std.Io, dir: std.Io.Dir, sub_path: []const u8) t.PathError!u64 {
+    var file = try openProbe(io, dir, sub_path);
     defer file.close(io);
     const st = file.stat(io) catch return error.StatFailed;
     if (st.size != 0) return st.size;
@@ -110,17 +158,18 @@ pub fn fileSize(io: std.Io, path: []const u8) t.PathError!u64 {
     }
 }
 
-/// Digest of a file window. `path` is a filesystem path, not text to hash.
-/// Presentation (SFV, timing, `-m`) stays in `hashFile` / `writeOutcome`.
-/// Reads until EOF or `limit` rather than trusting the stat size, which is
-/// 0 for pipes and procfs files.
+/// Digest of a file window. `dir` + `sub_path` locate a filesystem file, not
+/// text to hash. Presentation (SFV, timing, `-m`) stays in `hashFile` /
+/// `writeOutcome`. Reads until EOF or `limit` rather than trusting the stat
+/// size, which is 0 for pipes and procfs files.
 pub fn createFileDigest(
     h: *const hashes.HashDefinition,
-    path: []const u8,
+    dir: std.Io.Dir,
+    sub_path: []const u8,
     window: FileWindow,
     io: std.Io,
 ) FileDigestError!FileDigest {
-    var file = std.Io.Dir.cwd().openFile(io, path, .{}) catch return error.OpenFailed;
+    var file = try openForRead(io, dir, sub_path);
     defer file.close(io);
 
     const st = file.stat(io) catch return error.StatFailed;
@@ -230,11 +279,13 @@ fn hashFileWindow(
     return .{ .bytes = total_read };
 }
 
-/// Hashes the `opts.offset` / `opts.limit` window of `path` and, when
-/// `opts.hash` is non-empty, compares the digest against it.
+/// Hashes the `opts.offset` / `opts.limit` window of the file at
+/// `dir` + `sub_path` and, when `opts.hash` is non-empty, compares the digest
+/// against it.
 pub fn hashFile(
     hash_def: *const hashes.HashDefinition,
-    path: []const u8,
+    dir: std.Io.Dir,
+    sub_path: []const u8,
     opts: *const t.FileOptions,
     io: std.Io,
 ) error{OutOfMemory}!FileOutcome {
@@ -247,7 +298,7 @@ pub fn hashFile(
     }
 
     const started = std.Io.Clock.awake.now(io);
-    const digest = createFileDigest(hash_def, path, .{
+    const digest = createFileDigest(hash_def, dir, sub_path, .{
         .offset = opts.offset,
         .limit = opts.limit,
     }, io) catch |err| return switch (err) {
@@ -321,19 +372,20 @@ pub fn writeOutcome(
     }
 }
 
-/// Hashes `path` and commits its line to `report`. A failed file counts
+/// Hashes `ref` and commits its line to `report`. Open/stat go through
+/// `ref.dir` + `ref.name`; `ref.path` is display-only. A failed file counts
 /// against the run.
 pub fn hashIntoReport(
     report: *Report,
-    path: []const u8,
+    ref: t.FileRef,
     opts: *const t.FileOptions,
     format: OutputFormat,
     hash_def: *const hashes.HashDefinition,
 ) t.RunError!void {
     var effective = opts.*;
     if (!format.usesVerdict()) effective.hash = null;
-    const outcome = try hashFile(hash_def, path, &effective, report.env.io);
-    try writeOutcome(report.writer(), path, &outcome, format, opts);
+    const outcome = try hashFile(hash_def, ref.dir, ref.name, &effective, report.env.io);
+    try writeOutcome(report.writer(), ref.path, &outcome, format, opts);
     const ok = switch (outcome) {
         .failed => false,
         .hashed => |res| format != .listing or (res.matches orelse true),
@@ -347,8 +399,13 @@ const FileJob = struct {
 
     fn run(job: FileJob, report: *Report) t.RunError!void {
         const opts = &job.ctx.opts;
-        if (!try report.protectInput(job.ctx.file_path, false)) return;
-        try hashIntoReport(report, job.ctx.file_path, opts, .fromOptions(opts), job.hash_def);
+        const cwd = std.Io.Dir.cwd();
+        if (!try report.protectInput(cwd, job.ctx.file_path, job.ctx.file_path, false)) return;
+        try hashIntoReport(report, .{
+            .dir = cwd,
+            .name = job.ctx.file_path,
+            .path = job.ctx.file_path,
+        }, opts, .fromOptions(opts), job.hash_def);
     }
 };
 
@@ -959,7 +1016,7 @@ test "createFileDigest hashes a temp file" {
     hashes.compute(tiger, "hello", want[0..tiger.hash_length]);
 
     // Act
-    const got = try createFileDigest(tiger, path, .{}, io);
+    const got = try createFileDigest(tiger, std.Io.Dir.cwd(), path, .{}, io);
 
     // Assert
     try std.testing.expectEqual(@as(u64, 5), got.file_size);
@@ -978,7 +1035,7 @@ test "createFileDigest hashes a file window" {
     hashes.compute(tiger, "2345", want[0..tiger.hash_length]);
 
     // Act
-    const got = try createFileDigest(tiger, path, .{ .offset = 2, .limit = 4 }, io);
+    const got = try createFileDigest(tiger, std.Io.Dir.cwd(), path, .{ .offset = 2, .limit = 4 }, io);
 
     // Assert
     try std.testing.expectEqual(@as(u64, 10), got.file_size);
@@ -996,7 +1053,7 @@ test "createFileDigest empty file at offset 0" {
     hashes.compute(tiger, "", want[0..tiger.hash_length]);
 
     // Act
-    const got = try createFileDigest(tiger, path, .{}, io);
+    const got = try createFileDigest(tiger, std.Io.Dir.cwd(), path, .{}, io);
 
     // Assert
     try std.testing.expectEqual(@as(u64, 0), got.file_size);
@@ -1015,7 +1072,7 @@ test "createFileDigest offset past EOF" {
     // Assert
     try std.testing.expectError(
         error.OffsetPastEof,
-        createFileDigest(hashes.getHash("tiger").?, path, .{ .offset = 2 }, io),
+        createFileDigest(hashes.getHash("tiger").?, std.Io.Dir.cwd(), path, .{ .offset = 2 }, io),
     );
 }
 
@@ -1030,8 +1087,55 @@ test "createFileDigest missing file" {
     // Assert
     try std.testing.expectError(
         error.OpenFailed,
-        createFileDigest(hashes.getHash("tiger").?, path, .{}, io),
+        createFileDigest(hashes.getHash("tiger").?, std.Io.Dir.cwd(), path, .{}, io),
     );
+}
+
+test "file functions resolve a path longer than PATH_MAX component-wise" {
+    if (builtin.target.os.tag == .windows) return error.SkipZigTest;
+
+    // Arrange: 253 nested 16-byte directories, payload.txt ("hello") at the bottom.
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const gpa = std.testing.allocator;
+    const base = "modes_file_longpath_probe";
+    const comp = "dddddddddddddddd";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().deleteTree(io, base) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+    try std.Io.Dir.cwd().createDir(io, base, perms);
+    var cur = try std.Io.Dir.cwd().openDir(io, base, .{});
+    defer cur.close(io);
+    for (0..253) |_| {
+        try cur.createDir(io, comp, perms);
+        const next = try cur.openDir(io, comp, .{});
+        cur.close(io);
+        cur = next;
+    }
+    var f = try cur.createFile(io, "payload.txt", .{});
+    try f.writeStreamingAll(io, "hello");
+    f.close(io);
+
+    var full = std.Io.Writer.Allocating.init(gpa);
+    defer full.deinit();
+    try full.writer.writeAll(base);
+    for (0..253) |_| try full.writer.print("/{s}", .{comp});
+    try full.writer.writeAll("/payload.txt");
+    const path = full.written();
+    try std.testing.expect(path.len > std.Io.Dir.max_path_bytes);
+
+    const tiger = hashes.getHash("tiger").?;
+    var want: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(tiger, "hello", want[0..tiger.hash_length]);
+
+    // Act
+    const got = try createFileDigest(tiger, std.Io.Dir.cwd(), path, .{}, io);
+    const kind = try pathKind(io, std.Io.Dir.cwd(), path);
+    const size = try fileSize(io, std.Io.Dir.cwd(), path);
+
+    // Assert
+    try std.testing.expectEqualSlices(u8, want[0..tiger.hash_length], got.slice());
+    try std.testing.expectEqual(std.Io.File.Kind.file, kind);
+    try std.testing.expectEqual(@as(u64, 5), size);
 }
 
 fn renderOutcome(
@@ -1245,7 +1349,7 @@ test "createFileDigest hashes a pipe until EOF" {
     defer fifo.finish();
 
     // Act
-    const got = try createFileDigest(tiger, fifo.path, .{}, io);
+    const got = try createFileDigest(tiger, std.Io.Dir.cwd(), fifo.path, .{}, io);
 
     // Assert
     var want: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
@@ -1265,7 +1369,7 @@ test "createFileDigest hashes a pipe window" {
     defer fifo.finish();
 
     // Act
-    const got = try createFileDigest(tiger, fifo.path, .{ .offset = 2, .limit = 4 }, io);
+    const got = try createFileDigest(tiger, std.Io.Dir.cwd(), fifo.path, .{ .offset = 2, .limit = 4 }, io);
 
     // Assert
     var want: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
@@ -1283,7 +1387,7 @@ test "createFileDigest pipe offset past EOF" {
     defer fifo.finish();
 
     // Act
-    const result = createFileDigest(hashes.getHash("tiger").?, fifo.path, .{ .offset = 2 }, io);
+    const result = createFileDigest(hashes.getHash("tiger").?, std.Io.Dir.cwd(), fifo.path, .{ .offset = 2 }, io);
 
     // Assert
     try std.testing.expectError(error.OffsetPastEof, result);
@@ -1297,7 +1401,7 @@ test "createFileDigest reports bytes read as size for a limited unsized device" 
     const tiger = hashes.getHash("tiger").?;
 
     // Act
-    const got = try createFileDigest(tiger, "/dev/zero", .{ .limit = 100 }, io);
+    const got = try createFileDigest(tiger, std.Io.Dir.cwd(), "/dev/zero", .{ .limit = 100 }, io);
 
     // Assert
     try std.testing.expectEqual(@as(u64, 100), got.file_size);
@@ -1310,8 +1414,8 @@ test "fileSize counts procfs bytes that stat reports as 0" {
     const io = std.Io.Threaded.global_single_threaded.io();
 
     // Act
-    const size = try fileSize(io, "/proc/self/status");
-    const kind = try pathKind(io, "/proc/self/status");
+    const size = try fileSize(io, std.Io.Dir.cwd(), "/proc/self/status");
+    const kind = try pathKind(io, std.Io.Dir.cwd(), "/proc/self/status");
 
     // Assert
     try std.testing.expect(size > 0);
@@ -1323,8 +1427,8 @@ test "pathKind reports a directory and a missing path" {
     const io = std.Io.Threaded.global_single_threaded.io();
 
     // Act
-    const dir_kind = try pathKind(io, ".");
-    const missing = pathKind(io, "modes_file_missing_probe.txt");
+    const dir_kind = try pathKind(io, std.Io.Dir.cwd(), ".");
+    const missing = pathKind(io, std.Io.Dir.cwd(), "modes_file_missing_probe.txt");
 
     // Assert
     try std.testing.expectEqual(std.Io.File.Kind.directory, dir_kind);
@@ -1337,8 +1441,8 @@ test "pathKind and fileSize reject paths with embedded NUL" {
     const path = ".\x00ignored";
 
     // Act
-    const kind = pathKind(io, path);
-    const size = fileSize(io, path);
+    const kind = pathKind(io, std.Io.Dir.cwd(), path);
+    const size = fileSize(io, std.Io.Dir.cwd(), path);
 
     // Assert
     try std.testing.expectError(error.OpenFailed, kind);
@@ -1356,8 +1460,8 @@ test "pathKind and fileSize do not block on a FIFO" {
     defer std.Io.Dir.cwd().deleteFile(io, fifo_path) catch {};
 
     // Act
-    const kind = try pathKind(io, fifo_path);
-    const size = try fileSize(io, fifo_path);
+    const kind = try pathKind(io, std.Io.Dir.cwd(), fifo_path);
+    const size = try fileSize(io, std.Io.Dir.cwd(), fifo_path);
 
     // Assert
     try std.testing.expectEqual(std.Io.File.Kind.named_pipe, kind);

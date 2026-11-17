@@ -69,10 +69,10 @@ test "fuzz stub fails to open missing* paths and opens the rest" {
     const io = std.Io.Threaded.global_single_threaded.io();
 
     // Act
-    const missing_kind = stub.file.pathKind(io, "/tmp/missing.txt");
-    const empty_size = stub.file.fileSize(io, "");
+    const missing_kind = stub.file.pathKind(io, std.Io.Dir.cwd(), "/tmp/missing.txt");
+    const empty_size = stub.file.fileSize(io, std.Io.Dir.cwd(), "");
     const missing_dir = stub.dir.dirExists(io, "missing");
-    const kind = try stub.file.pathKind(io, "/tmp/a.txt");
+    const kind = try stub.file.pathKind(io, std.Io.Dir.cwd(), "/tmp/a.txt");
     const dir = stub.dir.dirExists(io, "/tmp");
 
     // Assert

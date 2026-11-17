@@ -40,11 +40,13 @@ pub const Report = struct {
 
     /// Refuses to save over an input file (including links), or skips it when
     /// `skip_output` is true for directory walks. Always skips the temporary report.
-    pub fn protectInput(self: *Report, path: []const u8, skip_output: bool) t.RunError!bool {
+    /// The input is located by `dir` + `name` (open/stat stay handle-relative
+    /// for paths longer than PATH_MAX); `path` is display-only.
+    pub fn protectInput(self: *Report, dir: std.Io.Dir, name: []const u8, path: []const u8, skip_output: bool) t.RunError!bool {
         const save_path = self.save_path orelse return true;
         const cwd = std.Io.Dir.cwd();
         if (self.save_file) |file| {
-            const input_stat = cwd.statFile(self.env.io, path, .{}) catch |err| switch (err) {
+            const input_stat = dir.statFile(self.env.io, name, .{}) catch |err| switch (err) {
                 error.FileNotFound => return true,
                 else => return self.rejectSave(path, @errorName(err)),
             };
@@ -57,7 +59,7 @@ pub const Report = struct {
             defer if (builtin.target.os.tag == .windows) temp.close(self.env.io);
             const temp_stat = temp.stat(self.env.io) catch return self.rejectSave(path, "cannot identify temporary report");
             if (input_stat.inode == temp_stat.inode) {
-                var input = cwd.openFile(self.env.io, path, .{}) catch return self.rejectSave(path, "cannot open input");
+                var input = dir.openFile(self.env.io, name, .{}) catch return self.rejectSave(path, "cannot open input");
                 defer input.close(self.env.io);
                 const input_id = fileIdentity(input) catch return self.rejectSave(path, "cannot identify input");
                 const temp_id = fileIdentity(temp) catch return self.rejectSave(path, "cannot identify temporary report");
@@ -68,7 +70,7 @@ pub const Report = struct {
             error.FileNotFound => return true,
             else => return self.rejectSave(path, @errorName(err)),
         };
-        const input_stat = cwd.statFile(self.env.io, path, .{}) catch |err| switch (err) {
+        const input_stat = dir.statFile(self.env.io, name, .{}) catch |err| switch (err) {
             error.FileNotFound => return true,
             else => return self.rejectSave(path, @errorName(err)),
         };
@@ -78,7 +80,7 @@ pub const Report = struct {
             else => return self.rejectSave(path, @errorName(err)),
         };
         defer output.close(self.env.io);
-        var input = cwd.openFile(self.env.io, path, .{}) catch |err| switch (err) {
+        var input = dir.openFile(self.env.io, name, .{}) catch |err| switch (err) {
             error.FileNotFound => return true,
             else => return self.rejectSave(path, @errorName(err)),
         };
@@ -363,7 +365,7 @@ test "Report ignores its temporary file during a walk" {
             while (it.next(report.env.io) catch return error.ProcessingFailed) |entry| {
                 const path = std.Io.Dir.path.join(report.env.allocator, &.{ base, entry.name }) catch return error.OutOfMemory;
                 defer report.env.allocator.free(path);
-                if (try report.protectInput(path, true)) return error.ProcessingFailed;
+                if (try report.protectInput(dir, entry.name, path, true)) return error.ProcessingFailed;
                 count += 1;
             }
             if (count != 1) return error.ProcessingFailed;

@@ -164,11 +164,13 @@ pub export fn fend_translation_unit_init(pfn: ?*const fn (?*c.fend_node_t) callc
     on_complete = pfn;
     // `state.script_alloc` is already set. Drop a previous unit that skipped cleanup.
     freeScriptEnv();
+    state.walk_roots.deinit(state.io, state.gpa);
 }
 
 pub export fn fend_translation_unit_cleanup() void {
     on_complete = null;
     freeScriptEnv();
+    state.walk_roots.deinit(state.io, state.gpa);
 }
 
 /// Scan `text` and run yyparse. Caller must have called `fend_translation_unit_init`.

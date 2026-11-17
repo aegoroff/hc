@@ -25,15 +25,33 @@ pub const FileVal = struct {
     /// Bytes to hash from `offset`; `maxInt(i64)` means whole file (hc default).
     limit: i64 = std.math.maxInt(i64),
     offset: i64 = 0,
+    /// Set for files yielded by a Dir walk on POSIX: open/stat resolve `rel`
+    /// against the open walk-root handle, so full paths longer than PATH_MAX
+    /// stay usable. `path` remains the display text. Null for path literals.
+    walk: ?WalkRef = null,
+
+    /// The root handle is borrowed from `state.walk_roots` and outlives every
+    /// value; `dupe` copies it, `free` never closes it. `rel` is owned.
+    pub const WalkRef = struct {
+        root: std.Io.Dir,
+        rel: []const u8,
+    };
 
     /// Same path/limit, new hash-window start (§4.5 `offset(n)`).
     pub fn withOffset(self: FileVal, offset: i64) FileVal {
-        return .{ .path = self.path, .limit = self.limit, .offset = offset };
+        return .{ .path = self.path, .limit = self.limit, .offset = offset, .walk = self.walk };
     }
 
     /// Same path/offset, new max bytes to hash (§4.5 `limit(n)`).
     pub fn withLimit(self: FileVal, limit: i64) FileVal {
-        return .{ .path = self.path, .limit = limit, .offset = self.offset };
+        return .{ .path = self.path, .limit = limit, .offset = self.offset, .walk = self.walk };
+    }
+
+    /// Handle and relative name to open/stat through: the walk root for walk
+    /// files, cwd for path literals.
+    pub fn openRef(self: FileVal) struct { dir: std.Io.Dir, name: []const u8 } {
+        if (self.walk) |w| return .{ .dir = w.root, .name = w.rel };
+        return .{ .dir = std.Io.Dir.cwd(), .name = self.path };
     }
 };
 
@@ -196,11 +214,20 @@ pub const Value = union(enum) {
                 .is_digest = s.is_digest,
                 .is_path = s.is_path,
             } },
-            .file => |f| .{ .file = .{
-                .path = try gpa.dupe(u8, f.path),
-                .limit = f.limit,
-                .offset = f.offset,
-            } },
+            .file => |f| blk: {
+                const path = try gpa.dupe(u8, f.path);
+                errdefer gpa.free(path);
+                const walk: ?FileVal.WalkRef = if (f.walk) |w|
+                    .{ .root = w.root, .rel = try gpa.dupe(u8, w.rel) }
+                else
+                    null;
+                break :blk .{ .file = .{
+                    .path = path,
+                    .limit = f.limit,
+                    .offset = f.offset,
+                    .walk = walk,
+                } };
+            },
             .dir => |d| .{ .dir = .{
                 .path = try gpa.dupe(u8, d.path),
                 .max_depth = d.max_depth,
@@ -263,7 +290,11 @@ pub const Value = union(enum) {
     pub fn free(self: Value, gpa: std.mem.Allocator) void {
         switch (self) {
             .string => |s| gpa.free(s.bytes),
-            .file => |f| gpa.free(f.path),
+            .file => |f| {
+                gpa.free(f.path);
+                // The walk-root handle belongs to state.walk_roots, not the value.
+                if (f.walk) |w| gpa.free(w.rel);
+            },
             .dir => |d| gpa.free(d.path),
             .hash => |h| {
                 gpa.free(h.digest);
@@ -488,6 +519,12 @@ test "FileVal and DirVal with* copy helpers" {
     try std.testing.expectEqual(@as(i64, 3), f.withLimit(3).limit);
     try std.testing.expectEqual(@as(i64, 2), f.withLimit(3).offset);
 
+    const walked: FileVal = .{ .path = "/a", .walk = .{ .root = std.Io.Dir.cwd(), .rel = "a" } };
+    try std.testing.expect(walked.withOffset(5).walk != null);
+    try std.testing.expect(walked.withLimit(3).walk != null);
+    try std.testing.expectEqualStrings("a", walked.openRef().name);
+    try std.testing.expectEqualStrings("/a", f.openRef().name);
+
     const d: DirVal = .{ .path = "/d", .max_depth = 0, .skip_errors = false };
     const tree = d.withTree(null);
     try std.testing.expect(tree.max_depth == null);
@@ -512,6 +549,7 @@ fn dupeNestedValue(gpa: std.mem.Allocator) !void {
         .{ .record = &rec },
         .{ .hash = .{ .digest = "ab", .dictionary = "xyz" } },
         Value.filePath("f"),
+        .{ .file = .{ .path = "d/g.txt", .walk = .{ .root = std.Io.Dir.cwd(), .rel = "g.txt" } } },
     };
     var seq: Seq = .{ .items = &items };
 
@@ -525,6 +563,29 @@ test "Value.dupe frees partial record and seq copies on OOM" {
 
     // Act / Assert: each allocation fails once; partial names, fields, and items are freed.
     try std.testing.checkAllAllocationFailures(std.testing.allocator, dupeNestedValue, .{});
+}
+
+test "Value.dupe file copies the walk ref; free keeps the root handle open" {
+    // Arrange
+    const gpa = std.testing.allocator;
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const root = std.Io.Dir.cwd();
+    const f: Value = .{ .file = .{
+        .path = "some/long/display/path.txt",
+        .walk = .{ .root = root, .rel = "path.txt" },
+    } };
+
+    // Act
+    const owned = try f.dupe(gpa);
+
+    // Assert
+    try std.testing.expectEqualStrings("some/long/display/path.txt", owned.file.path);
+    try std.testing.expectEqualStrings("path.txt", owned.file.walk.?.rel);
+    try std.testing.expectEqual(root.handle, owned.file.walk.?.root.handle);
+    owned.free(gpa);
+    // free releases rel but must not close the borrowed root handle.
+    const st = try root.statFile(io, ".", .{});
+    try std.testing.expectEqual(std.Io.File.Kind.directory, st.kind);
 }
 
 test "Value.dupe HashVal frees digest if dictionary dupe fails" {
