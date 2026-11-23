@@ -7,6 +7,8 @@ static unsigned int run_calls;
 static unsigned int sync_calls;
 static unsigned int cleanup_calls;
 static unsigned int fail_on_run;
+static BOOL fail_on_read;
+static BOOL fail_on_sync;
 static hc_ocl_algo_t algo;
 static uint32_t max_len_arg;
 
@@ -31,7 +33,7 @@ static cl_int enqueue_kernel(cl_command_queue queue, cl_kernel kernel, cl_uint d
 static cl_int read_buffer(cl_command_queue queue, cl_mem buffer, cl_bool blocking,
                           size_t offset, size_t size, void *data, cl_uint count,
                           const cl_event *events, cl_event *event) {
-    return CL_SUCCESS;
+    return fail_on_read ? -5 /* CL_OUT_OF_RESOURCES */ : CL_SUCCESS;
 }
 
 static hc_ocl_api_t api = {
@@ -54,13 +56,13 @@ void gpu_run(gpu_tread_ctx_t *ctx, size_t dict_len,
 }
 
 void gpu_synchronize(gpu_tread_ctx_t *ctx) {
-    assert(!ctx->launch_failed_);
     ++sync_calls;
     ctx->launch_in_flight_ = FALSE;
+    if (fail_on_sync) ctx->launch_failed_ = TRUE;
 }
 
 void gpu_cleanup(gpu_tread_ctx_t *ctx) {
-    assert(!ctx->launch_in_flight_);
+    if (ctx->launch_in_flight_) gpu_synchronize(ctx);
     ++cleanup_calls;
     hc_ocl_run_active_cleanup();
     ctx->dev_result_ = NULL;
@@ -104,8 +106,57 @@ int main(void) {
         assert(cleanup_calls == 1);
         assert(max_len_arg == 5);
         assert(bf_core_get_attempts() == (fail_on_run - 1) * 5);
+        assert(ctx.completed_through_ == 3);
         assert(!ctx.found_in_the_thread_);
         assert(ctx.dev_result_ == NULL);
     }
+
+    for (unsigned int failure = 0; failure < 2; ++failure) {
+        /* Arrange */
+        run_calls = sync_calls = cleanup_calls = 0;
+        fail_on_run = 0;
+        fail_on_read = failure == 0;
+        fail_on_sync = failure == 1;
+        gpu_context_t gpu = { .pfn_prepare_ = prepare, .pfn_run_ = run };
+        gpu_tread_ctx_t ctx = {
+            .gpu_context_ = &gpu,
+            .passmin_ = 5,
+            .passmax_ = 5,
+            .max_gpu_blocks_number_ = 1,
+            .max_threads_per_block_ = 1,
+        };
+        bf_core_reset();
+
+        /* Act */
+        bf_core_gpu_worker(&ctx);
+
+        /* Assert */
+        assert(run_calls == 1);
+        assert(sync_calls == 1);
+        assert(cleanup_calls == 1);
+        assert(bf_core_get_attempts() == 0);
+        assert(ctx.completed_through_ == 4);
+    }
+
+    /* Arrange: all eight prefixes for lengths 4 and 5 fit in the first launch. */
+    run_calls = sync_calls = cleanup_calls = 0;
+    fail_on_run = 2;
+    fail_on_read = fail_on_sync = FALSE;
+    gpu_context_t gpu = { .pfn_prepare_ = prepare, .pfn_run_ = run };
+    gpu_tread_ctx_t ctx = {
+        .gpu_context_ = &gpu,
+        .passmin_ = 4,
+        .passmax_ = 6,
+        .max_gpu_blocks_number_ = 1,
+        .max_threads_per_block_ = 8,
+    };
+    bf_core_reset();
+
+    /* Act */
+    bf_core_gpu_worker(&ctx);
+
+    /* Assert: length 6 must be retried; lengths 4 and 5 are already covered. */
+    assert(run_calls == 2);
+    assert(ctx.completed_through_ == 5);
     return 0;
 }

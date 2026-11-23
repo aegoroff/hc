@@ -256,7 +256,7 @@ pub fn crackHash(
 
     var gpu_ctx_storage: gpu.GpuContext = .{};
     var gpu_ptr: ?*c.gpu_context_t = null;
-    if (gpu.contextFor(hash_def.name)) |gc| {
+    if (gpuContextFor(hash_def.name, use_wide)) |gc| {
         gpu_ctx_storage = gc;
         gpu_ptr = @ptrCast(&gpu_ctx_storage);
     }
@@ -367,6 +367,14 @@ fn gpuMaxPasswordLen() u32 {
     return @intCast(gpu.GPU_ATTEMPT_SIZE - 1);
 }
 
+fn gpuContextFor(name: []const u8, use_wide: bool) ?gpu.GpuContext {
+    // Only the shared MD4/NTLM kernel can hash UTF-16LE candidates.
+    if (use_wide and !std.ascii.eqlIgnoreCase(name, "md4") and !std.ascii.eqlIgnoreCase(name, "ntlm")) {
+        return null;
+    }
+    return gpu.contextFor(name);
+}
+
 /// Length of a GPU `result_` slot: NUL-terminated, or full `GPU_ATTEMPT_SIZE`
 /// when the hit fills the buffer with no trailing NUL.
 fn gpuResultLen(result: []const u8) usize {
@@ -398,8 +406,10 @@ fn gpuResultPassword(gpa: std.mem.Allocator, result: []const u8, use_wide: bool)
     return std.unicode.utf16LeToUtf8Alloc(gpa, wide);
 }
 
-fn needsCpuFallback(passmax: u32, gpu_max_len: u32, gpu_rejected: bool) bool {
-    return passmax <= gpu_max_len or gpu_rejected;
+fn cpuFallbackMin(passmin: u32, passmax: u32, gpu_completed_through: u32, gpu_rejected: bool) ?u32 {
+    // A rejected hit may also have stopped the short CPU search.
+    const next = if (gpu_rejected) passmin else gpu_completed_through + 1;
+    return if (next <= passmax) next else null;
 }
 
 fn runBruteForce(
@@ -419,7 +429,8 @@ fn runBruteForce(
 
     // Lengths 1..=3 crack instantly on CPU; GPU is overkill there.
     // Enable GPU only when passmax > 3 (same gate as classic).
-    var has_gpu = has_gpu_in and passmax > 3;
+    const gpu_max_len = gpuMaxPasswordLen();
+    var has_gpu = has_gpu_in and gpu_context != null and passmax > 3 and passmin <= gpu_max_len;
     if (has_gpu and !c.gpu_can_use_gpu()) {
         // Leading newline: probe estimate is printed without a trailing '\n'
         // (outputTimings supplies it). Without this, the diagnostic would glue
@@ -435,14 +446,6 @@ fn runBruteForce(
         }
         has_gpu = false;
     }
-    const gpu_max_len: u32 = gpuMaxPasswordLen();
-
-    // With GPU: pin to 1 host thread so CPU does not race the device.
-    var num_threads: u32 = num_threads_in;
-    if (has_gpu) {
-        num_threads = 1;
-    }
-
     const prepared = try prepareDictionary(arena, dict);
     // CUDA `__constant__ k_dict[GPU_DICT_MAX]` / OpenCL dict buf cannot hold more.
     // prepareDictionary dedupes to ≤256, so this only trips a mismatched ABI.
@@ -453,11 +456,14 @@ fn runBruteForce(
         );
         try writer.flush();
         has_gpu = false;
-        num_threads = num_threads_in;
     }
-    if (prepared.len <= num_threads) {
-        num_threads = @intCast(@max(prepared.len, 1));
-    }
+    const cpu_passmax = if (has_gpu) 3 else passmax;
+    const num_threads: u32 = if (passmin > cpu_passmax)
+        0
+    else if (has_gpu)
+        1
+    else
+        @min(num_threads_in, @max(@as(u32, @intCast(prepared.len)), 1));
 
     const hash_bytes = try arena.dupe(u8, digest);
 
@@ -489,12 +495,12 @@ fn runBruteForce(
         const ctx = &slot.ctx;
         ctx.* = std.mem.zeroes(c.bf_cpu_ctx_t);
         ctx.passmin_ = passmin;
-        ctx.passmax_ = if (has_gpu and passmax <= gpu_max_len) @min(passmax, 3) else passmax;
+        ctx.passmax_ = cpu_passmax;
         ctx.work_thread_ = 1;
         ctx.thread_num_ = i + 1;
-        ctx.pass_ = (try arena.alloc(u8, passmax + 1)).ptr;
-        @memset(ctx.pass_[0 .. passmax + 1], 0);
-        const wide_buf = try arena.alloc(c.bf_wide_char_t, passmax + 1);
+        ctx.pass_ = (try arena.alloc(u8, cpu_passmax + 1)).ptr;
+        @memset(ctx.pass_[0 .. cpu_passmax + 1], 0);
+        const wide_buf = try arena.alloc(c.bf_wide_char_t, cpu_passmax + 1);
         @memset(std.mem.sliceAsBytes(wide_buf), 0);
         ctx.wide_pass_ = wide_buf.ptr;
         ctx.num_of_threads = @intCast(num_threads);
@@ -505,80 +511,67 @@ fn runBruteForce(
 
     var found_pass: ?[]u8 = null;
     var gpu_rejected = false;
+    var gpu_completed_through = @max(passmin, 4) - 1;
 
-    if (has_gpu and gpu_context != null) {
+    if (has_gpu) {
         var count_props: c.device_props_t = std.mem.zeroes(c.device_props_t);
         c.gpu_get_props(&count_props);
         if (count_props.device_count > 0) {
-            // The `> 0` guard above already rules out the negative/zero error
-            // paths a CUDA driver can report, so the signed->usize cast is safe.
             const n_gpu: usize = @intCast(count_props.device_count);
             const gpu_ctxs = try arena.alloc(c.gpu_tread_ctx_t, n_gpu);
-            // The post-join scan reads every slot; a device skipped by a failed
-            // gpu_get_device_props must read as not-found, not arena garbage.
-            @memset(std.mem.sliceAsBytes(gpu_ctxs), 0);
-            var gpu_threads = try arena.alloc(?std.Thread, n_gpu);
-            @memset(gpu_threads, null);
-            defer joinSpawnedThreads(gpu_threads);
-            errdefer c.bf_core_set_found(true);
             const gpu_passmax = @min(passmax, gpu_max_len);
-            var gpu_found = false;
+            const dec = gpu_context.?.max_threads_decrease_factor_;
+            var usable_devices: u32 = 0;
 
-            for (gpu_ctxs, 0..) |*gctx, i| {
+            for (0..n_gpu) |i| {
                 var props: c.device_props_t = std.mem.zeroes(c.device_props_t);
                 if (!c.gpu_get_device_props(@intCast(i), &props)) {
                     continue;
                 }
+                const max_threads = @divTrunc(props.max_threads_per_block, if (dec == 0) 1 else dec);
+                if (props.max_blocks_number <= 0 or max_threads <= 0) continue;
 
+                const gctx = &gpu_ctxs[usable_devices];
                 gctx.* = std.mem.zeroes(c.gpu_tread_ctx_t);
-                gctx.passmin_ = passmin;
+                gctx.passmin_ = @max(passmin, 4);
                 gctx.passmax_ = gpu_passmax;
                 gctx.attempt_ = (try arena.alloc(u8, gpu.GPU_ATTEMPT_SIZE)).ptr;
                 @memset(gctx.attempt_[0..gpu.GPU_ATTEMPT_SIZE], 0);
                 gctx.result_ = (try arena.alloc(u8, gpu.GPU_ATTEMPT_SIZE)).ptr;
                 @memset(gctx.result_[0..gpu.GPU_ATTEMPT_SIZE], 0);
-                gctx.pass_length_ = passmin;
                 gctx.max_gpu_blocks_number_ = props.max_blocks_number;
                 gctx.multiprocessor_count_ = props.multiprocessor_count;
-                const dec = gpu_context.?.max_threads_decrease_factor_;
-                gctx.max_threads_per_block_ = @divTrunc(props.max_threads_per_block, if (dec == 0) 1 else dec);
+                gctx.max_threads_per_block_ = max_threads;
 
                 gctx.device_ix_ = @intCast(i);
                 gctx.gpu_context_ = @ptrCast(gpu_context.?);
                 gctx.use_wide_pass_ = use_wide;
                 gctx.max_threads_decrease_factor_ = dec;
+                gctx.shard_index_ = usable_devices;
+                usable_devices += 1;
+            }
 
+            const gpu_threads = try arena.alloc(?std.Thread, usable_devices);
+            @memset(gpu_threads, null);
+            defer joinSpawnedThreads(gpu_threads);
+            errdefer c.bf_core_set_found(true);
+            for (gpu_ctxs[0..usable_devices], 0..) |*gctx, i| {
+                gctx.shard_count_ = usable_devices;
                 gpu_threads[i] = try std.Thread.spawn(.{ .allocator = arena }, c.bf_core_gpu_worker, .{gctx});
             }
 
             joinSpawnedThreads(gpu_threads);
-            for (gpu_ctxs) |*gctx| {
-                if (gctx.found_in_the_thread_ and gctx.result_ != null) {
-                    // Kernels memcpy the password without writing NUL; a hit of
-                    // length GPU_ATTEMPT_SIZE fills the slot. Never use mem.len.
-                    const len = gpuResultLen(gctx.result_[0..gpu.GPU_ATTEMPT_SIZE]);
-                    if (len > 0) {
-                        const raw = gctx.result_[0..len];
-                        // A non-zero slot is accepted only when it hashes to the target.
-                        if (gpuResultMatches(hash_bytes, raw, use_wide)) {
-                            found_pass = try gpuResultPassword(arena, raw, use_wide);
-                            gpu_found = true;
-                        } else {
-                            gpu_rejected = true;
-                        }
-                    }
+            if (usable_devices != 0) gpu_completed_through = gpu_passmax;
+            for (gpu_ctxs[0..usable_devices]) |*gctx| {
+                gpu_completed_through = @min(gpu_completed_through, gctx.completed_through_);
+                if (!gctx.found_in_the_thread_) continue;
+                const len = gpuResultLen(gctx.result_[0..gpu.GPU_ATTEMPT_SIZE]);
+                const raw = gctx.result_[0..len];
+                if (len != 0 and gpuResultMatches(hash_bytes, raw, use_wide)) {
+                    found_pass = try gpuResultPassword(arena, raw, use_wide);
+                } else {
+                    gpu_rejected = true;
                 }
-            }
-            // Only stop CPU when GPU actually found a password. On a miss the
-            // short CPU workers finish before the full CPU fallback below.
-            // Beyond the GPU slot size their range was never capped (see #10).
-            if (gpu_found) {
-                c.bf_core_set_found(true);
-            } else if (gpu_rejected and !g_stop_requested.load(.acquire)) {
-                // The worker already raised the flag for this slot. Drop it when
-                // the bytes do not hash to the target, so a still-running CPU
-                // search is not stopped on a rejected hit.
-                c.bf_core_set_found(false);
             }
         }
     }
@@ -603,11 +596,13 @@ fn runBruteForce(
         }
     }
 
-    if (found_pass == null and has_gpu and needsCpuFallback(passmax, gpu_max_len, gpu_rejected) and !g_stop_requested.load(.acquire)) {
-        const attempts_before_fallback = c.bf_core_get_attempts();
-        const fallback_pass = try runBruteForce(arena, writer, dict, digest, passmin, passmax, num_threads_in, use_wide, false, null);
-        c.bf_core_add_attempts(attempts_before_fallback);
-        return fallback_pass;
+    if (found_pass == null and has_gpu and !g_stop_requested.load(.acquire)) {
+        if (cpuFallbackMin(passmin, passmax, gpu_completed_through, gpu_rejected)) |next| {
+            const attempts_before_fallback = c.bf_core_get_attempts();
+            const fallback_pass = try runBruteForce(arena, writer, dict, digest, next, passmax, num_threads_in, use_wide, false, null);
+            c.bf_core_add_attempts(attempts_before_fallback);
+            return fallback_pass;
+        }
     }
     return found_pass;
 }
@@ -731,7 +726,7 @@ test "runBruteForce honors a stop requested before its reset" {
     try std.testing.expect(got == null);
 }
 
-test "crackHash GPU miss preserves attempts across the CPU fallback" {
+test "crackHash completed GPU miss does not repeat the search on CPU" {
     // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
     const md5 = hashes.getHash("md5").?;
@@ -739,7 +734,8 @@ test "crackHash GPU miss preserves attempts across the CPU fallback" {
     hashes.compute(md5, "a", &digest);
     var buf: [512]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const expected_attempts: u64 = if (c.gpu_can_use_gpu()) 213220 else 111110;
+    const gpu_attempts = 101000;
+    const cpu_attempts = 111110;
 
     // Act
     const got = try crackHash(std.testing.allocator, io, &writer, "0-9", &digest, 5, 5, md5, true, 1, false);
@@ -747,7 +743,14 @@ test "crackHash GPU miss preserves attempts across the CPU fallback" {
 
     // Assert
     try std.testing.expect(got == null);
-    try std.testing.expectEqual(expected_attempts, c.bf_core_get_attempts());
+    const attempts = c.bf_core_get_attempts();
+    if (c.gpu_can_use_gpu()) {
+        // A runtime failure can leave some completed batches before CPU retry.
+        try std.testing.expect(attempts == gpu_attempts or
+            (attempts >= cpu_attempts and attempts < cpu_attempts + gpu_attempts));
+    } else {
+        try std.testing.expectEqual(@as(u64, cpu_attempts), attempts);
+    }
 }
 
 fn stopWhenCrackActive() void {
@@ -858,15 +861,38 @@ test "gpuResultLen stops at first NUL" {
     try std.testing.expectEqual(@as(usize, 4), len);
 }
 
-test "rejected GPU hit beyond its password limit requires CPU fallback" {
+test "CPU fallback starts after the last length covered by all GPU shards" {
     // Arrange
-    const passmax = gpuMaxPasswordLen() + 1;
+    const gpu_max = gpuMaxPasswordLen();
 
     // Act
-    const fallback = needsCpuFallback(passmax, gpuMaxPasswordLen(), true);
+    const covered = cpuFallbackMin(1, 5, 5, false);
+    const unfinished = cpuFallbackMin(1, 5, 3, false);
+    const tail = cpuFallbackMin(1, gpu_max + 1, gpu_max, false);
+    const rejected = cpuFallbackMin(1, gpu_max + 1, 3, true);
 
     // Assert
-    try std.testing.expect(fallback);
+    try std.testing.expectEqual(@as(?u32, null), covered);
+    try std.testing.expectEqual(@as(?u32, 4), unfinished);
+    try std.testing.expectEqual(@as(?u32, gpu_max + 1), tail);
+    try std.testing.expectEqual(@as(?u32, 1), rejected);
+}
+
+test "GPU context matches the byte encoding of the candidates" {
+    // Arrange
+    const md5 = "md5";
+
+    // Act
+    const md5_bytes = gpuContextFor(md5, false);
+    const md5_wide = gpuContextFor(md5, true);
+    const md4_wide = gpuContextFor("MD4", true);
+    const ntlm_wide = gpuContextFor("ntlm", true);
+
+    // Assert
+    try std.testing.expect(md5_bytes != null);
+    try std.testing.expect(md5_wide == null);
+    try std.testing.expect(md4_wide != null);
+    try std.testing.expect(ntlm_wide != null);
 }
 
 test "gpuResultMatches accepts only a password that hashes to the target" {
