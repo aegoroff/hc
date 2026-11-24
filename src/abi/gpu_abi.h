@@ -81,6 +81,9 @@ typedef struct hc_gpu_thread_ctx {
     /* Dual-backend dispatch tag (gpu_dispatch.c); single-backend builds never
      * read it. Set by gpu_init_pipeline, cleared by gpu_cleanup. */
     hc_gpu_backend_t backend_;
+    uint32_t shard_index_;
+    uint32_t shard_count_; /* Zero uses a single shard. */
+    uint32_t completed_through_; /* Last length covered, or one below the requested range. */
 } hc_gpu_thread_ctx_t;
 
 typedef struct hc_gpu_context {

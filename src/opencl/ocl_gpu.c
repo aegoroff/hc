@@ -207,9 +207,15 @@ BOOL gpu_init_pipeline(gpu_tread_ctx_t* ctx) {
 }
 
 void gpu_synchronize(gpu_tread_ctx_t* ctx) {
-    if (!ctx || !g_ocl.usable || !g_ocl.queue) return;
-    g_ocl.api.clFinish(g_ocl.queue);
+    if (!ctx) return;
+    if (!g_ocl.usable || !g_ocl.queue) {
+        ctx->launch_failed_ = TRUE;
+        return;
+    }
+    const cl_int status = g_ocl.api.clFinish(g_ocl.queue);
     ctx->launch_in_flight_ = FALSE;
+    if (status != CL_SUCCESS) ctx->launch_failed_ = TRUE;
+    if (ctx->launch_failed_) return;
     if (ctx->result_ && ctx->result_[0]) {
         ctx->found_in_the_thread_ = TRUE;
     }

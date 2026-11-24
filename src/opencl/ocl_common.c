@@ -165,7 +165,8 @@ void hc_ocl_algo_run(hc_ocl_algo_t* algo, gpu_tread_ctx_t* ctx, size_t dict_len)
     if (threads == 0 || count == 0) return;
 
     int zero = 0;
-    api->clEnqueueWriteBuffer(queue, algo->found_buf, CL_TRUE, 0, sizeof(int), &zero, 0, NULL, NULL);
+    if (api->clEnqueueWriteBuffer(queue, algo->found_buf, CL_TRUE, 0, sizeof(int), &zero, 0, NULL, NULL) !=
+        CL_SUCCESS) return;
 
     const uint32_t min_len = ctx->passmin_ ? ctx->passmin_ : 1u;
     const cl_ulong start = (cl_ulong)ctx->index_start_;
@@ -175,20 +176,21 @@ void hc_ocl_algo_run(hc_ocl_algo_t* algo, gpu_tread_ctx_t* ctx, size_t dict_len)
     const cl_uint cl_min_len = min_len;
     const cl_uint cl_max_len = ctx->passmax_;
 
-    api->clSetKernelArg(algo->kernel, 0, sizeof(cl_mem), &algo->result_buf);
-    api->clSetKernelArg(algo->kernel, 1, sizeof(cl_mem), &algo->dict_buf);
-    api->clSetKernelArg(algo->kernel, 2, sizeof(cl_mem), &algo->hash_buf);
-    api->clSetKernelArg(algo->kernel, 3, sizeof(cl_mem), &algo->found_buf);
-    api->clSetKernelArg(algo->kernel, 4, sizeof(cl_ulong), &start);
-    api->clSetKernelArg(algo->kernel, 5, sizeof(cl_uint), &cl_count);
-    api->clSetKernelArg(algo->kernel, 6, sizeof(cl_uint), &pass_len);
-    api->clSetKernelArg(algo->kernel, 7, sizeof(cl_uint), &cl_dict_len);
-    api->clSetKernelArg(algo->kernel, 8, sizeof(cl_uint), &cl_min_len);
-    api->clSetKernelArg(algo->kernel, 9, sizeof(cl_uint), &cl_max_len);
+    cl_int arg_status = api->clSetKernelArg(algo->kernel, 0, sizeof(cl_mem), &algo->result_buf);
+    arg_status |= api->clSetKernelArg(algo->kernel, 1, sizeof(cl_mem), &algo->dict_buf);
+    arg_status |= api->clSetKernelArg(algo->kernel, 2, sizeof(cl_mem), &algo->hash_buf);
+    arg_status |= api->clSetKernelArg(algo->kernel, 3, sizeof(cl_mem), &algo->found_buf);
+    arg_status |= api->clSetKernelArg(algo->kernel, 4, sizeof(cl_ulong), &start);
+    arg_status |= api->clSetKernelArg(algo->kernel, 5, sizeof(cl_uint), &cl_count);
+    arg_status |= api->clSetKernelArg(algo->kernel, 6, sizeof(cl_uint), &pass_len);
+    arg_status |= api->clSetKernelArg(algo->kernel, 7, sizeof(cl_uint), &cl_dict_len);
+    arg_status |= api->clSetKernelArg(algo->kernel, 8, sizeof(cl_uint), &cl_min_len);
+    arg_status |= api->clSetKernelArg(algo->kernel, 9, sizeof(cl_uint), &cl_max_len);
     if (algo->pass_wide_arg) {
         const cl_uint use_wide = ctx->use_wide_pass_ ? 1u : 0u;
-        api->clSetKernelArg(algo->kernel, 10, sizeof(cl_uint), &use_wide);
+        arg_status |= api->clSetKernelArg(algo->kernel, 10, sizeof(cl_uint), &use_wide);
     }
+    if (arg_status != CL_SUCCESS) return;
 
     size_t local = threads;
     size_t global = ((size_t)count + local - 1) / local * local;
@@ -197,8 +199,8 @@ void hc_ocl_algo_run(hc_ocl_algo_t* algo, gpu_tread_ctx_t* ctx, size_t dict_len)
         return;
     }
 
-    api->clEnqueueReadBuffer(queue, algo->result_buf, CL_FALSE, 0, GPU_ATTEMPT_SIZE, ctx->result_, 0, NULL,
-                             NULL);
     ctx->launch_in_flight_ = TRUE;
-    ctx->launch_failed_ = FALSE;
+    ctx->launch_failed_ =
+        api->clEnqueueReadBuffer(queue, algo->result_buf, CL_FALSE, 0, GPU_ATTEMPT_SIZE, ctx->result_, 0,
+                                 NULL, NULL) != CL_SUCCESS;
 }
